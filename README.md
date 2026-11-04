@@ -1,11 +1,12 @@
 # Tevrox
 
-Tevrox is a skincare and nutrition platform foundation. Web, Android, and iOS use separate clients over one versioned FastAPI API and one PostgreSQL database hosted on Supabase. This milestone provides status screens, schema, and service boundaries only; it does not implement authentication, product discovery, or AI workflows.
+Tevrox is a skincare and nutrition platform foundation. Web, Android, and iOS use separate clients over one versioned FastAPI API, Supabase PostgreSQL for relational data, and a secondary MongoDB document service. This milestone provides status screens, schema, and service boundaries only; it does not implement authentication, product discovery, or AI workflows.
 
 ## Requirements
 
 - Git, Node.js current LTS, pnpm 12.6, Python 3.11+, and uv
 - A Supabase PostgreSQL project for real database health and migrations
+- A MongoDB deployment (Atlas or local) for MongoDB health reporting
 - Android Studio emulator, Xcode simulator (macOS), or Expo Go for mobile
 
 ## First-time setup
@@ -18,7 +19,7 @@ cp apps/web/.env.example apps/web/.env.local
 cp apps/mobile/.env.example apps/mobile/.env
 ```
 
-Set `DATABASE_URL` in root `.env` to your Supabase connection string. Use the direct database connection or transaction pooler with the correct driver/port. Never commit `.env` files. The sample URLs and key values are placeholders.
+Set `DATABASE_URL` in root `.env` to your Supabase connection string and `MONGODB_URL` to your MongoDB connection URI. Use the direct database connection or transaction pooler with the correct PostgreSQL driver/port. Never commit `.env` files. The sample URLs and key values are placeholders.
 
 ## Run the apps
 
@@ -43,6 +44,8 @@ Check that Expo's SDK packages remain aligned with the pinned SDK and React Nati
 | Variable | Used by | Purpose |
 | --- | --- | --- |
 | `DATABASE_URL` | backend | PostgreSQL connection string (`postgresql+psycopg://...`) |
+| `MONGODB_URL` | backend | MongoDB connection URI (`mongodb://...` or `mongodb+srv://...`) |
+| `MONGODB_DATABASE` | backend | MongoDB database name (`tevrox` by default) |
 | `SUPABASE_URL` | backend | Supabase project URL |
 | `SUPABASE_ANON_KEY` | backend | Public Supabase key, reserved for future integrations |
 | `SUPABASE_SERVICE_ROLE_KEY` | backend | Server-only service key; never expose to clients |
@@ -85,6 +88,7 @@ docs/           Architecture, schema, API conventions, OpenAPI contract
 ## Troubleshooting
 
 - `database: unreachable`: check the root `.env` `DATABASE_URL`, Supabase network access, and SSL settings from the Supabase connection panel.
+- `mongodb: unreachable`: check `MONGODB_URL`, Atlas IP access rules or local MongoDB service availability, and database credentials.
 - Web cannot reach the API: run the backend and set `NEXT_PUBLIC_API_URL`; add the web origin to `ALLOWED_ORIGINS`.
 - Device cannot reach the API: `localhost` points at the device. Use the development computer's LAN IP and ensure port 8000 is reachable.
 - Migration connection fails: verify the URL and that the Supabase database accepts connections from your network. Migrations need a direct connection or session pooler, not the transaction pooler for all DDL workflows.
@@ -92,7 +96,7 @@ docs/           Architecture, schema, API conventions, OpenAPI contract
 
 ## Dependencies
 
-- Backend runtime: `fastapi` (HTTP API), `uvicorn[standard]` (ASGI server and reload support), `sqlalchemy` (ORM), `alembic` (migrations), `psycopg[binary]` (PostgreSQL driver), and `pydantic-settings` (environment configuration).
+- Backend runtime: `fastapi` (HTTP API), `uvicorn[standard]` (ASGI server and reload support), `sqlalchemy` (ORM), `alembic` (migrations), `psycopg[binary]` (PostgreSQL driver), `pymongo` (async MongoDB driver), and `pydantic-settings` (environment configuration).
 - Backend development: `pytest` (tests), `httpx` (FastAPI test client), and `ruff` (lint/format).
 - Web runtime: `next`, `react`, and `react-dom` (App Router and rendering), `tailwindcss` and `@tailwindcss/postcss` (styles). `typescript`, `@types/node`, `@types/react`, `@types/react-dom`, `eslint`, and `eslint-config-next` provide type checking and linting.
 - Mobile runtime: `expo`, `expo-router`, `react-native`, `react`, and `react-dom` (Expo runtime, navigation, and Expo Router's web peer); `@expo/metro-runtime`, `expo-constants`, `expo-linking`, `expo-status-bar`, `react-native-safe-area-context`, and `react-native-screens` support Expo Router and native navigation. `@react-native/metro-config` matches the Expo SDK Metro toolchain. `typescript`, `@types/react`, `eslint`, and `eslint-config-expo` provide type checking and linting.

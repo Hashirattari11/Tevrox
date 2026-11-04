@@ -2,6 +2,7 @@
 
 - Prefix all routes with `/api/v1`; breaking changes require a new version prefix.
 - Use JSON request/response bodies and conventional HTTP status codes.
+- `GET /api/v1/health` reports API status plus PostgreSQL (`database`) and MongoDB (`mongodb`) reachability; an unavailable database is reported without making the health route fail.
 - Errors have the shape `{ "error": { "code": "...", "message": "...", "details": null } }`.
 - Authentication is not implemented. Week 2–3 will add bearer JWT access tokens, refresh policy, and role-based authorization; secrets remain backend-only.
 - Future collection endpoints should paginate with `limit` (default 20, maximum 100) and opaque `cursor`, returning `{ "items": [], "next_cursor": null }`.

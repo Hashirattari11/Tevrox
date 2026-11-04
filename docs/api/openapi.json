@@ -271,6 +271,14 @@
           "database": {
             "type": "string",
             "title": "Database"
+          },
+          "mongodb": {
+            "type": "string",
+            "enum": [
+              "connected",
+              "unreachable"
+            ],
+            "title": "Mongodb"
           }
         },
         "type": "object",
@@ -278,7 +286,8 @@
           "status",
           "service",
           "version",
-          "database"
+          "database",
+          "mongodb"
         ],
         "title": "HealthResponse"
       }

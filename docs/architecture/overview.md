@@ -6,11 +6,12 @@ flowchart LR
   Mobile[Expo iOS and Android] -->|HTTPS / JSON| API
   API --> ORM[SQLAlchemy 2]
   ORM --> DB[(Supabase PostgreSQL)]
+  API -->|Async PyMongo; future document workloads| Mongo[(MongoDB)]
   API -. future provider interface .-> AI[AI provider]
   API -. future provider interface .-> Catalog[Product provider]
 ```
 
-The clients are separate because web and native mobile have different navigation, rendering, and deployment needs. They share one API contract and database so validation, business rules, and persistence remain centralized. Request flow is client → versioned FastAPI router → service layer → SQLAlchemy session → PostgreSQL. The Week 1 clients only read the health endpoint.
+The clients are separate because web and native mobile have different navigation, rendering, and deployment needs. They share one API contract so validation and business rules remain centralized. Relational records use PostgreSQL through SQLAlchemy; MongoDB is configured as a secondary document service for future unstructured workloads. Both are reported by the health endpoint. Request flow is client → versioned FastAPI router → service layer → PostgreSQL and, where needed, MongoDB. The foundation clients only read health status.
 
 ## Decisions
 

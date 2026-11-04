@@ -1,6 +1,6 @@
 # Database schema
 
-All tables use UUID primary keys and server-generated timezone-aware `created_at` and `updated_at` timestamps. Foreign key deletion behavior protects user ownership while allowing catalog references to be removed safely.
+All PostgreSQL tables use UUID primary keys and server-generated timezone-aware `created_at` and `updated_at` timestamps. Foreign key deletion behavior protects user ownership while allowing catalog references to be removed safely. MongoDB is configured as a secondary document database; no collections are created until a feature defines their ownership and schema.
 
 ```mermaid
 erDiagram
