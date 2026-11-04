@@ -6,4 +6,5 @@
 - **Portable UUID + JSONB schema:** UUIDs are generated in the application; structured analysis and preferences use PostgreSQL JSONB.
 - **Placeholder APIs only:** No authentication, analysis, catalog integration, or product/routine behavior ships in this foundation.
 - **OpenAPI generated from FastAPI:** `pnpm openapi` refreshes the committed API contract. Typed clients can later be generated with `openapi-typescript` and a small fetch wrapper.
+- **Expo SDK alignment:** Mobile uses Expo SDK 58 with its matching React Native 0.88 and React 19.3 versions; the `doctor` script checks Expo package compatibility.
 - **Migration portability limitation:** The initial revision calls `Base.metadata.create_all/drop_all` to keep one source of schema truth at foundation stage. Before schema evolution in production, replace it with explicit Alembic operations and review generated migrations.

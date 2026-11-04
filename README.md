@@ -32,6 +32,8 @@ pnpm dev:mobile
 
 The web status page is at http://localhost:3000 and the API at http://localhost:8000/api/v1/health. Android emulator can reach the host as `10.0.2.2`; the mobile fallback is configured accordingly. For iOS simulator use `localhost`. For a physical device, set `EXPO_PUBLIC_API_URL` to `http://<computer-LAN-IP>:8000`, keep both devices on the same network, and allow the backend port through the host firewall. CORS origins are for browser clients; Expo native networking does not enforce browser CORS.
 
+Check that Expo's SDK packages remain aligned with the pinned SDK and React Native versions using `pnpm --filter @tevrox/mobile doctor`.
+
 ## Environment variables
 
 | Variable | Used by | Purpose |
