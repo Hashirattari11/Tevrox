@@ -6,6 +6,8 @@
     "dev:web": "pnpm --filter @tevrox/web dev",
     "dev:mobile": "pnpm --filter @tevrox/mobile start",
     "dev:backend": "uv run --project backend uvicorn app.main:app --app-dir backend --reload",
+    "mongo:up": "docker compose up -d mongodb",
+    "mongo:down": "docker compose stop mongodb",
     "test:backend": "uv run --project backend pytest backend/tests",
     "lint": "pnpm --filter @tevrox/web lint && pnpm --filter @tevrox/mobile lint && uv run --project backend ruff check backend",
     "format:backend": "uv run --project backend ruff format backend",

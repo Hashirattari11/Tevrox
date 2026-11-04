@@ -7,6 +7,7 @@ Tevrox is a skincare and nutrition platform foundation. Web, Android, and iOS us
 - Git, Node.js current LTS, pnpm 12.6, Python 3.11+, and uv
 - A Supabase PostgreSQL project for real database health and migrations
 - A MongoDB deployment (Atlas or local) for MongoDB health reporting
+- Docker Desktop with Compose if you want to run the local MongoDB service
 - Android Studio emulator, Xcode simulator (macOS), or Expo Go for mobile
 
 ## First-time setup
@@ -19,7 +20,7 @@ cp apps/web/.env.example apps/web/.env.local
 cp apps/mobile/.env.example apps/mobile/.env
 ```
 
-Set `DATABASE_URL` in root `.env` to your Supabase connection string and `MONGODB_URL` to your MongoDB connection URI. Use the direct database connection or transaction pooler with the correct PostgreSQL driver/port. Never commit `.env` files. The sample URLs and key values are placeholders.
+Set `DATABASE_URL` in root `.env` to your Supabase connection string. The sample MongoDB URI and credentials are for local development only; `MONGODB_URL` must match the Compose credentials, or be replaced with your Atlas URI. Use the direct database connection or transaction pooler with the correct PostgreSQL driver/port. Never commit `.env` files.
 
 ## Run the apps
 
@@ -30,6 +31,8 @@ pnpm dev:backend
 pnpm dev:web
 pnpm dev:mobile
 ```
+
+Start the local MongoDB service first with `pnpm mongo:up`. Its database files persist in the `mongo_data` Docker volume. Stop the service without deleting its data with `pnpm mongo:down`.
 
 The web status page is at http://localhost:3000 and the API at http://localhost:8000/api/v1/health. Android emulator can reach the host as `10.0.2.2`; the mobile fallback is configured accordingly. For iOS simulator use `localhost`. For a physical device, set `EXPO_PUBLIC_API_URL` to `http://<computer-LAN-IP>:8000`, keep both devices on the same network, and allow the backend port through the host firewall. CORS origins are for browser clients; Expo native networking does not enforce browser CORS.
 
@@ -46,6 +49,8 @@ Check that Expo's SDK packages remain aligned with the pinned SDK and React Nati
 | `DATABASE_URL` | backend | PostgreSQL connection string (`postgresql+psycopg://...`) |
 | `MONGODB_URL` | backend | MongoDB connection URI (`mongodb://...` or `mongodb+srv://...`) |
 | `MONGODB_DATABASE` | backend | MongoDB database name (`tevrox` by default) |
+| `MONGO_INITDB_ROOT_USERNAME` | local MongoDB | Compose-only local root username |
+| `MONGO_INITDB_ROOT_PASSWORD` | local MongoDB | Compose-only local root password; change for shared machines |
 | `SUPABASE_URL` | backend | Supabase project URL |
 | `SUPABASE_ANON_KEY` | backend | Public Supabase key, reserved for future integrations |
 | `SUPABASE_SERVICE_ROLE_KEY` | backend | Server-only service key; never expose to clients |
@@ -82,6 +87,7 @@ uv run --project backend ruff check backend
 apps/web/       Next.js App Router status client
 apps/mobile/    Expo Router status client
 backend/        FastAPI, SQLAlchemy models, Alembic, tests
+compose.yaml    Local MongoDB service for development
 docs/           Architecture, schema, API conventions, OpenAPI contract
 ```
 
