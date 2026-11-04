@@ -1,0 +1,1 @@
+"""Future product catalog module."""

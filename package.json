@@ -1,0 +1,15 @@
+{
+  "name": "tevrox",
+  "private": true,
+  "packageManager": "pnpm@10.22.0",
+  "scripts": {
+    "dev:web": "pnpm --filter @tevrox/web dev",
+    "dev:mobile": "pnpm --filter @tevrox/mobile start",
+    "dev:backend": "uv run --project backend uvicorn app.main:app --app-dir backend --reload",
+    "test:backend": "uv run --project backend pytest backend/tests",
+    "lint": "pnpm --filter @tevrox/web lint && pnpm --filter @tevrox/mobile lint && uv run --project backend ruff check backend",
+    "format:backend": "uv run --project backend ruff format backend",
+    "migrate": "uv run --project backend alembic -c backend/alembic.ini upgrade head",
+    "openapi": "uv run --project backend python backend/scripts/export_openapi.py"
+  }
+}

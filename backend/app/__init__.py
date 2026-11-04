@@ -1,0 +1,1 @@
+"""Tevrox backend application."""
