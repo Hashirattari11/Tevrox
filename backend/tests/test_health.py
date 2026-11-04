@@ -1,8 +1,13 @@
+import os
 from collections.abc import Generator
 
 from fastapi.testclient import TestClient
 
 from app.database.mongodb import get_mongodb_status
+
+os.environ.setdefault("ENVIRONMENT", "test")
+os.environ.setdefault("JWT_SECRET", "test-secret-which-is-at-least-thirty-two-characters")
+
 from app.database.session import get_db
 from app.main import app
 

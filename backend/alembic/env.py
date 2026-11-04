@@ -4,14 +4,15 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-from app.core.config import get_settings
 from app.database import models  # noqa: F401
 from app.database.base import Base
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL", get_settings().database_url))
+config.set_main_option(
+    "sqlalchemy.url", os.getenv("DATABASE_URL", "postgresql+psycopg://localhost/tevrox")
+)
 target_metadata = Base.metadata
 
 

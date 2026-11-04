@@ -1,0 +1,5 @@
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
+export default function Dashboard() { const { user, accessToken, loading, logout } = useAuth(); const [profile, setProfile] = useState<{ full_name?: string; skin_type?: string } | null>(null); const router = useRouter(); useEffect(() => { if (!loading && !user) router.replace("/login"); if (accessToken) fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/v1/users/me/profile`, { headers: { authorization: `Bearer ${accessToken}` } }).then(r => r.ok ? r.json() : null).then(setProfile); }, [accessToken, loading, router, user]); if (loading || !user) return <main className="p-8">Loading…</main>; return <main className="mx-auto max-w-xl p-8"><h1 className="text-3xl font-semibold">Welcome, {profile?.full_name ?? user.email}</h1><p className="mt-2">Skin type: {profile?.skin_type ?? "Not set"}</p><button className="mt-6 rounded bg-emerald-800 p-3 text-white" onClick={() => logout().then(() => router.replace("/login"))}>Log out</button></main>; }

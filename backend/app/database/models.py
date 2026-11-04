@@ -53,6 +53,11 @@ class User(TimestampMixin, Base):
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True, nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role"), default=UserRole.user)
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False, server_default="true")
+    is_email_verified: Mapped[bool] = mapped_column(
+        default=False, nullable=False, server_default="false"
+    )
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class UserProfile(TimestampMixin, Base):
@@ -65,6 +70,31 @@ class UserProfile(TimestampMixin, Base):
     display_name: Mapped[str | None] = mapped_column(String(120))
     skin_type: Mapped[str | None] = mapped_column(String(80))
     dietary_preferences: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    full_name: Mapped[str | None] = mapped_column(String(160))
+    skin_concerns: Mapped[list[str]] = mapped_column(JSONB, default=list, nullable=False)
+    preferences: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, nullable=False)
+    onboarding_completed: Mapped[bool] = mapped_column(
+        default=False, nullable=False, server_default="false"
+    )
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    family_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), index=True, nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    replaced_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    user_agent: Mapped[str | None] = mapped_column(String(512))
+    ip_address: Mapped[str | None] = mapped_column(String(64))
 
 
 class DataSource(TimestampMixin, Base):

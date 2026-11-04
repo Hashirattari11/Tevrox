@@ -55,6 +55,8 @@ Check that Expo's SDK packages remain aligned with the pinned SDK and React Nati
 | `SUPABASE_ANON_KEY` | backend | Public Supabase key, reserved for future integrations |
 | `SUPABASE_SERVICE_ROLE_KEY` | backend | Server-only service key; never expose to clients |
 | `JWT_SECRET` | backend | Secret to configure before JWT work in Week 2–3 |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | backend | Access JWT lifetime; default 15 |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | backend | Refresh-token lifetime; default 30 |
 | `ALLOWED_ORIGINS` | backend | Comma-separated browser origins |
 | `ENVIRONMENT` | backend | Environment name (development by default) |
 | `AI_PROVIDER_API_KEY` | backend | Empty until an AI provider is selected |
@@ -110,3 +112,5 @@ docs/           Architecture, schema, API conventions, OpenAPI contract
 ## Week 2 authentication starting points
 
 Decide account lifecycle and email verification, choose password hashing and JWT expiry/refresh policy, implement registration/login schemas and services, add authorization dependencies/role checks, add migration for verification/refresh state if needed, and cover token expiry, invalid credentials, and access control with tests. Keep provider secrets server-side.
+
+Create the first administrator only from the CLI: `uv run --project backend python backend/scripts/create_admin.py admin@example.com "strong-password"`.

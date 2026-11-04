@@ -21,7 +21,10 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def http_exception_handler(
         _request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
-        return error_response(exc.status_code, "http_error", str(exc.detail))
+        detail = str(exc.detail)
+        code = detail if detail.startswith(("AUTH_", "RATE_LIMITED")) else "http_error"
+        message = "Request failed" if detail.startswith("AUTH_") else detail
+        return error_response(exc.status_code, code, message)
 
     @app.exception_handler(RequestValidationError)
     async def validation_exception_handler(

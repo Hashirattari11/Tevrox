@@ -22,6 +22,7 @@ erDiagram
 | Table | Purpose and constraints |
 | --- | --- |
 | `users` | Unique email, password hash placeholder, `role` enum (`user`, `admin`). |
+| `refresh_tokens` | Hashed opaque tokens with user, family, expiry, revocation and replacement metadata; refresh rotation detects reuse. |
 | `user_profiles` | One-to-one user preferences; cascades on user deletion. |
 | `brands` | Unique searchable brand name. |
 | `data_sources` | Named provenance sources for catalog data. |
