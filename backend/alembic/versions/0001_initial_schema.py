@@ -1,6 +1,6 @@
 """Initial schema for users, product catalog, routines, and nutrition."""
-from alembic import op
 
+from alembic import op
 from app.database import models  # noqa: F401
 from app.database.base import Base
 

@@ -9,9 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 logger = logging.getLogger(__name__)
 
 
-def error_response(
-    status_code: int, code: str, message: str, details: Any = None
-) -> JSONResponse:
+def error_response(status_code: int, code: str, message: str, details: Any = None) -> JSONResponse:
     return JSONResponse(
         status_code=status_code,
         content={"error": {"code": code, "message": message, "details": details}},

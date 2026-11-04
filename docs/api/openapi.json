@@ -1,17 +1,287 @@
 {
   "openapi": "3.1.0",
-  "info": {"title": "Tevrox API", "version": "0.1.0"},
-  "paths": {
-    "/api/v1/health": {"get": {"tags": ["system"], "summary": "Health", "operationId": "health_api_v1_health_get", "responses": {"200": {"description": "Backend and database status", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/HealthResponse"}}}}}}},
-    "/api/v1/auth/": {"get": {"tags": ["auth"], "summary": "Auth Placeholder", "operationId": "auth_placeholder_api_v1_auth__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/users/": {"get": {"tags": ["users"], "summary": "Users Placeholder", "operationId": "users_placeholder_api_v1_users__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/products/": {"get": {"tags": ["products"], "summary": "Products Placeholder", "operationId": "products_placeholder_api_v1_products__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/ingredients/": {"get": {"tags": ["ingredients"], "summary": "Ingredients Placeholder", "operationId": "ingredients_placeholder_api_v1_ingredients__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/analysis/": {"get": {"tags": ["analysis"], "summary": "Placeholder", "operationId": "placeholder_api_v1_analysis__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/conflicts/": {"get": {"tags": ["conflicts"], "summary": "Placeholder", "operationId": "placeholder_api_v1_conflicts__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/routines/": {"get": {"tags": ["routines"], "summary": "Placeholder", "operationId": "placeholder_api_v1_routines__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/nutrition/": {"get": {"tags": ["nutrition"], "summary": "Placeholder", "operationId": "placeholder_api_v1_nutrition__get", "responses": {"200": {"description": "Successful Response"}}}},
-    "/api/v1/admin/": {"get": {"tags": ["admin"], "summary": "Placeholder", "operationId": "placeholder_api_v1_admin__get", "responses": {"200": {"description": "Successful Response"}}}}
+  "info": {
+    "title": "Tevrox API",
+    "version": "0.1.0"
   },
-  "components": {"schemas": {"HealthResponse": {"properties": {"status": {"type": "string", "title": "Status"}, "service": {"type": "string", "title": "Service"}, "version": {"type": "string", "title": "Version"}, "database": {"type": "string", "title": "Database"}}, "type": "object", "required": ["status", "service", "version", "database"], "title": "HealthResponse"}}}
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Health",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Auth Placeholder",
+        "operationId": "auth_placeholder_api_v1_auth__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Auth Placeholder Api V1 Auth  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/users/": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Users Placeholder",
+        "operationId": "users_placeholder_api_v1_users__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Users Placeholder Api V1 Users  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/products/": {
+      "get": {
+        "tags": [
+          "products"
+        ],
+        "summary": "Products Placeholder",
+        "operationId": "products_placeholder_api_v1_products__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Products Placeholder Api V1 Products  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ingredients/": {
+      "get": {
+        "tags": [
+          "ingredients"
+        ],
+        "summary": "Ingredients Placeholder",
+        "operationId": "ingredients_placeholder_api_v1_ingredients__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Ingredients Placeholder Api V1 Ingredients  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/": {
+      "get": {
+        "tags": [
+          "analysis"
+        ],
+        "summary": "Placeholder",
+        "operationId": "placeholder_api_v1_analysis__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Placeholder Api V1 Analysis  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conflicts/": {
+      "get": {
+        "tags": [
+          "conflicts"
+        ],
+        "summary": "Placeholder",
+        "operationId": "placeholder_api_v1_conflicts__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Placeholder Api V1 Conflicts  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/routines/": {
+      "get": {
+        "tags": [
+          "routines"
+        ],
+        "summary": "Placeholder",
+        "operationId": "placeholder_api_v1_routines__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Placeholder Api V1 Routines  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/nutrition/": {
+      "get": {
+        "tags": [
+          "nutrition"
+        ],
+        "summary": "Placeholder",
+        "operationId": "placeholder_api_v1_nutrition__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Placeholder Api V1 Nutrition  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Placeholder",
+        "operationId": "placeholder_api_v1_admin__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Placeholder Api V1 Admin  Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "service": {
+            "type": "string",
+            "title": "Service"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "database": {
+            "type": "string",
+            "title": "Database"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "service",
+          "version",
+          "database"
+        ],
+        "title": "HealthResponse"
+      }
+    }
+  }
 }

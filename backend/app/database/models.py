@@ -3,7 +3,18 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, JSON, String, Text, UniqueConstraint, func
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -19,18 +30,18 @@ class TimestampMixin:
     )
 
 
-class UserRole(str, enum.Enum):
+class UserRole(enum.StrEnum):
     user = "user"
     admin = "admin"
 
 
-class VerificationStatus(str, enum.Enum):
+class VerificationStatus(enum.StrEnum):
     unverified = "unverified"
     verified = "verified"
     rejected = "rejected"
 
 
-class RoutineType(str, enum.Enum):
+class RoutineType(enum.StrEnum):
     morning = "morning"
     evening = "evening"
 
