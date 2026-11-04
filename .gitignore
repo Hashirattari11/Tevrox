@@ -8,6 +8,7 @@ node_modules/
 dist/
 build/
 .expo/
+.expo-home/
 .expo-shared/
 web-build/
 *.tsbuildinfo

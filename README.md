@@ -4,7 +4,7 @@ Tevrox is a skincare and nutrition platform foundation. Web, Android, and iOS us
 
 ## Requirements
 
-- Git, Node.js current LTS, pnpm 10, Python 3.11+, and uv
+- Git, Node.js current LTS, pnpm 12.6, Python 3.11+, and uv
 - A Supabase PostgreSQL project for real database health and migrations
 - Android Studio emulator, Xcode simulator (macOS), or Expo Go for mobile
 
@@ -32,7 +32,11 @@ pnpm dev:mobile
 
 The web status page is at http://localhost:3000 and the API at http://localhost:8000/api/v1/health. Android emulator can reach the host as `10.0.2.2`; the mobile fallback is configured accordingly. For iOS simulator use `localhost`. For a physical device, set `EXPO_PUBLIC_API_URL` to `http://<computer-LAN-IP>:8000`, keep both devices on the same network, and allow the backend port through the host firewall. CORS origins are for browser clients; Expo native networking does not enforce browser CORS.
 
-Check that Expo's SDK packages remain aligned with the pinned SDK and React Native versions using `pnpm --filter @tevrox/mobile doctor`.
+- Android emulator: start an emulator in Android Studio, then run `pnpm --filter @tevrox/mobile android`.
+- iOS simulator: on macOS with Xcode installed, run `pnpm --filter @tevrox/mobile ios`; the platform default uses `localhost` for the API.
+- Physical Android/iPhone: run `pnpm dev:mobile`, open the project in Expo Go using the terminal QR code, and set `EXPO_PUBLIC_API_URL` in `apps/mobile/.env` to the computer's LAN address. `localhost` points to the phone itself.
+
+Check that Expo's SDK packages remain aligned with the pinned SDK and React Native versions using `pnpm --filter @tevrox/mobile run doctor`.
 
 ## Environment variables
 
@@ -88,10 +92,10 @@ docs/           Architecture, schema, API conventions, OpenAPI contract
 
 ## Dependencies
 
-- Backend runtime: FastAPI (HTTP API), Uvicorn (ASGI server), SQLAlchemy (ORM), Alembic (migrations), psycopg (PostgreSQL driver), Pydantic Settings (environment configuration).
-- Backend development: pytest and HTTPX (API tests), Ruff (lint/format).
-- Web runtime: Next.js and React; Tailwind CSS for minimal styling. TypeScript, ESLint, and Next ESLint config support strict checking and linting.
-- Mobile runtime: Expo, Expo Router, React Native, Expo Metro runtime, linking, constants, status bar, safe-area and screens packages. TypeScript and Expo ESLint config support type safety and linting.
+- Backend runtime: `fastapi` (HTTP API), `uvicorn[standard]` (ASGI server and reload support), `sqlalchemy` (ORM), `alembic` (migrations), `psycopg[binary]` (PostgreSQL driver), and `pydantic-settings` (environment configuration).
+- Backend development: `pytest` (tests), `httpx` (FastAPI test client), and `ruff` (lint/format).
+- Web runtime: `next`, `react`, and `react-dom` (App Router and rendering), `tailwindcss` and `@tailwindcss/postcss` (styles). `typescript`, `@types/node`, `@types/react`, `@types/react-dom`, `eslint`, and `eslint-config-next` provide type checking and linting.
+- Mobile runtime: `expo`, `expo-router`, `react-native`, `react`, and `react-dom` (Expo runtime, navigation, and Expo Router's web peer); `@expo/metro-runtime`, `expo-constants`, `expo-linking`, `expo-status-bar`, `react-native-safe-area-context`, and `react-native-screens` support Expo Router and native navigation. `@react-native/metro-config` matches the Expo SDK Metro toolchain. `typescript`, `@types/react`, `eslint`, and `eslint-config-expo` provide type checking and linting.
 
 ## Week 2 authentication starting points
 

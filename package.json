@@ -1,7 +1,7 @@
 {
   "name": "tevrox",
   "private": true,
-  "packageManager": "pnpm@10.22.0",
+  "packageManager": "pnpm@12.6.0",
   "scripts": {
     "dev:web": "pnpm --filter @tevrox/web dev",
     "dev:mobile": "pnpm --filter @tevrox/mobile start",
