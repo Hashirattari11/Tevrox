@@ -2,10 +2,11 @@
 
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { ShieldCheck, ShieldX, ShieldQuestion, PackageX, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, ShieldX, ShieldQuestion, CheckCircle2 } from "lucide-react";
 import { TevroxLayout } from "@/components/layout";
-import { TevroxPageHeader, TevroxButton, TevroxEmptyState } from "@/components/ui";
-import { useAuth } from "@/components/AuthProvider";
+import { TevroxPageHeader } from "@/components/ui/pageheader";
+import { TevroxButton } from "@/components/ui/button";
+import { TevroxEmptyState } from "@/components/ui/emptystate";
 
 type ReviewItem = {
   id: string;
@@ -20,16 +21,14 @@ type ReviewItem = {
 };
 
 export default function AdminProductsPage() {
-  const { authFetch, isAdmin, loading: authLoading } = useAuth();
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [actionId, setActionId] = useState<string | null>(null);
 
-  const load = React.useCallback(() => {
+  const load = () => {
     setLoading(true);
     setError(null);
-    authFetch("/api/v1/products/admin/review-queue")
+    fetch("http://localhost:8010/api/v1/products/admin/review-queue")
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error?.message ?? "Failed to load review queue");
@@ -37,18 +36,16 @@ export default function AdminProductsPage() {
       })
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [authFetch]);
+  };
 
   useEffect(() => {
-    if (!authLoading && isAdmin) load();
-    else if (!authLoading) setLoading(false);
-  }, [authLoading, isAdmin, load]);
+    load();
+  }, []);
 
   const act = async (id: string, status: "verified" | "rejected") => {
-    setActionId(id);
     setError(null);
     try {
-      const res = await authFetch(`/api/v1/products/admin/${id}/verify`, {
+      const res = await fetch(`http://localhost:8010/api/v1/products/admin/${id}/verify`, {
         method: "PUT",
         body: JSON.stringify({ verification_status: status }),
       });
@@ -57,21 +54,8 @@ export default function AdminProductsPage() {
       setItems((prev) => prev.filter((item) => item.id !== id));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Action failed");
-    } finally {
-      setActionId(null);
     }
   };
-
-  if (!authLoading && !isAdmin) {
-    return (
-      <TevroxLayout>
-        <TevroxPageHeader title="Admin" subtitle="Product review queue" />
-        <div role="alert" className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-          This page is restricted to admins.
-        </div>
-      </TevroxLayout>
-    );
-  }
 
   return (
     <TevroxLayout>
@@ -106,7 +90,6 @@ export default function AdminProductsPage() {
             >
               <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-slate-50">
                 {item.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={item.image_url} alt={item.name} className="h-full w-full object-contain" />
                 ) : (
                   <ShieldQuestion className="h-8 w-8 text-amber-400" aria-hidden />
@@ -124,7 +107,6 @@ export default function AdminProductsPage() {
                 <TevroxButton
                   variant="primary"
                   size="sm"
-                  disabled={actionId === item.id}
                   onClick={() => act(item.id, "verified")}
                 >
                   <ShieldCheck size={16} />
@@ -133,7 +115,6 @@ export default function AdminProductsPage() {
                 <TevroxButton
                   variant="danger"
                   size="sm"
-                  disabled={actionId === item.id}
                   onClick={() => act(item.id, "rejected")}
                 >
                   <ShieldX size={16} />

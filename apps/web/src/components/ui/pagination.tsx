@@ -74,11 +74,7 @@ export function TevroxPagination({
                   }
                 )}
                 aria-label={current === page ? `Page ${current}` : `Go to page ${current}`}
-                {
-                  current === page
-                    ? {}
-                    : current < 1 || current > totalPages && "disabled"
-                }
+                disabled={current < 1 || current > totalPages}
               >
                 {current}
               </button>

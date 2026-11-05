@@ -1,18 +1,80 @@
 "use client";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function SignupPage() {
-  const [error, setError] = useState(""); const router = useRouter();
+  const [error, setError] = useState("");
+  const { signup } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+
   async function submit(form: FormData) {
     setError("");
+    setBusy(true);
     try {
-      const response = await fetch("/api/auth/signup", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: form.get("email"), password: form.get("password"), full_name: form.get("name") }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error?.message ?? "Could not create account");
-      router.replace("/onboarding");
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Signup failed"); }
+      const name = String(form.get("name"));
+      const email = String(form.get("email"));
+      const password = String(form.get("password"));
+      await signup(email, password, name);
+      router.replace("/dashboard");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Signup failed");
+    } finally {
+      setBusy(false);
+    }
   }
-  return <main className="mx-auto max-w-md p-8"><h1 className="text-3xl font-semibold">Create your account</h1><form action={submit} className="mt-6 grid gap-4"><input required name="name" placeholder="Full name" className="rounded border p-3"/><input required name="email" type="email" placeholder="Email" className="rounded border p-3"/><input required minLength={8} name="password" type="password" placeholder="Password (8+ characters)" className="rounded border p-3"/>{error && <p role="alert">{error}</p>}<button className="rounded bg-emerald-800 p-3 text-white">Sign up</button></form><p className="mt-4">Have an account? <Link href="/login">Log in</Link></p></main>;
+
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-emerald-50 via-slate-50 to-slate-100 flex items-center justify-center p-4">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <h1 className="text-4xl font-bold tracking-tighter text-emerald-900">Tevrox</h1>
+          <p className="mt-2 text-emerald-600 font-medium">Create your account</p>
+        </div>
+
+        <section className="bg-white rounded-2xl p-8 shadow-xl">
+          <h2 className="text-3xl font-semibold mb-4">Sign up</h2>
+          <form action={submit} className="mt-6 grid gap-4">
+            <input
+              required
+              name="name"
+              placeholder="Full name"
+              className="rounded-md border border-slate-300 p-3 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+            />
+            <input
+              required
+              name="email"
+              type="email"
+              placeholder="Email"
+              className="rounded-md border border-slate-300 p-3 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+            />
+            <input
+              required
+              minLength={8}
+              name="password"
+              type="password"
+              placeholder="Password (8+ characters)"
+              className="rounded-md border border-slate-300 p-3 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20"
+            />
+            {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+            <button
+              disabled={busy}
+              className="rounded-md bg-emerald-700 p-3 text-white font-medium hover:bg-emerald-800 disabled:opacity-50"
+            >
+              {busy ? "Creating account…" : "Sign up"}
+            </button>
+          </form>
+          <p className="mt-4 text-center text-sm text-slate-600">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-emerald-700 hover:text-emerald-800">
+              Log in
+            </Link>
+          </p>
+        </section>
+      </div>
+    </main>
+  );
 }
