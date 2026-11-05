@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Tevrox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3 { font-family: 'Playfair Display', serif; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-emerald-50 via-slate-50 to-emerald-100 min-h-screen flex items-center justify-center">
+    <div class="max-w-md mx-auto px-6">
+        <div class="text-center mb-8">
+            <a href="/" class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center text-white font-bold text-lg">T</div>
+                <span class="text-xl font-bold text-slate-900 font-serif tracking-tight">Tevrox</span>
+            </a>
+        </div>
+        <div class="bg-white rounded-2xl shadow-2xl p-8">
+            <h2 class="text-3xl font-bold text-slate-900 mb-4">Log in</h2>
+            <p class="text-slate-600 mb-8">Welcome back. Sign in to your Tevrox account.</p>
+            <form class="space-y-4">
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">Email</label>
+                    <input required name="email" type="email" placeholder="you@example.com" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+                </div>
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-slate-700">Password</label>
+                    <input required name="password" type="password" placeholder="••••••••" minLength="8" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20" />
+                </div>
+                <button type="submit" class="w-full rounded-lg bg-emerald-600 px-3 py-2 text-white font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all">Log in</button>
+            </form>
+            <p class="text-center text-sm text-slate-600 mt-6">
+                Don't have an account? <a href="/signup" class="font-medium text-emerald-600 hover:text-emerald-700">Create account</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
