@@ -120,24 +120,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return fetch(`${baseUrl}${path}`, { ...init, headers });
   };
 
-  if (loading) return <p className="p-6 text-neutral-500">Loading…</p>;
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        accessToken,
-        loading,
-        isAdmin: user?.role === "admin",
-        login,
-        signup,
-        logout,
-        authFetch,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  if (loading) {
+    return (
+      <AuthContext.Provider
+        value={{
+          user,
+          accessToken,
+          loading,
+          isAdmin: false,
+          login,
+          signup,
+          logout,
+          authFetch,
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 }
 
 export function useAuth(): AuthContextValue {
