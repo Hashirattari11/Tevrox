@@ -1,0 +1,142 @@
+ROLE
+You are a senior full-stack architect and engineer. You are setting up the technical foundation (Week 1) for "Tevrox", a skincare + nutrition platform running on Web, Android and iOS, all sharing one FastAPI backend and one PostgreSQL (Supabase) database.
+
+GOAL
+By the end of this task, the repository must contain a working, runnable technical foundation: monorepo structure, three initialized apps (web, mobile, backend), database schema with migrations, API skeleton, environment configuration, documentation, and a verified end-to-end health check from web and mobile to the backend and database. Do NOT build product features yet (no auth screens, no AI, no product search UI). Foundation only.
+
+TECH STACK (fixed, do not substitute)
+- Web: Next.js (latest stable, App Router, TypeScript) + React
+- Mobile: React Native + Expo (TypeScript, Expo Router)
+- Backend: Python 3.11+ with FastAPI
+- Database: PostgreSQL via Supabase
+- ORM and migrations: SQLAlchemy 2.x + Alembic
+- Validation: Pydantic v2
+- Package managers: pnpm for JS/TS, uv or pip + venv for Python
+- Version control: Git / GitHub
+
+MONOREPO STRUCTURE (create exactly this)
+tevrox/
+├── apps/
+│   ├── web/                 # Next.js
+│   └── mobile/              # Expo React Native
+├── backend/
+│   ├── app/
+│   │   ├── core/            # config, security, logging, exceptions
+│   │   ├── database/        # session, base, models
+│   │   ├── modules/
+│   │   │   ├── auth/
+│   │   │   ├── users/
+│   │   │   ├── products/
+│   │   │   ├── ingredients/
+│   │   │   ├── analysis/
+│   │   │   ├── conflicts/
+│   │   │   ├── routines/
+│   │   │   ├── nutrition/
+│   │   │   └── admin/
+│   │   ├── integrations/
+│   │   │   ├── ai_provider.py       # interface stub only
+│   │   │   └── product_provider.py  # interface stub only
+│   │   └── main.py
+│   ├── alembic/
+│   ├── tests/
+│   ├── requirements.txt (or pyproject.toml)
+│   └── .env.example
+├── docs/
+│   ├── architecture/
+│   ├── database/
+│   └── api/
+├── .gitignore
+├── .editorconfig
+├── pnpm-workspace.yaml
+└── README.md
+
+TASKS (execute in this order)
+
+1. REPOSITORY SETUP
+- Initialize git, add a proper .gitignore (node, python, expo, next, env files, IDE files).
+- Add .editorconfig and a root README with project overview, structure, and setup steps.
+- Use conventional commits. Make small, logical commits after each major step.
+- Branching: main (stable) and develop (working branch).
+
+2. BACKEND (FastAPI)
+- Create the folder structure above with __init__.py files where needed.
+- Implement app/main.py with: FastAPI app, CORS middleware (origins from env), versioned router prefix /api/v1, and GET /api/v1/health returning {status, service, version, database: "connected"|"unreachable"}.
+- app/core/config.py: Pydantic Settings loading from environment (DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, JWT_SECRET, ALLOWED_ORIGINS, ENVIRONMENT, AI_PROVIDER_API_KEY, PRODUCT_API_KEY).
+- app/core/logging.py: structured logging setup.
+- app/core/exceptions.py: global exception handlers with a consistent error response format: {error: {code, message, details}}.
+- app/database/session.py: SQLAlchemy engine and session dependency.
+- Each module folder gets: router.py, schemas.py, service.py, models.py (empty or minimal placeholders with a docstring describing its future purpose). Register all routers in main.py with placeholder endpoints only.
+- integrations/ai_provider.py and product_provider.py: abstract base classes defining the interface (no real API calls yet) so providers can be swapped later.
+- Add pytest with a basic test for the health endpoint.
+- Add ruff (lint + format) config.
+
+3. DATABASE (Supabase PostgreSQL)
+- Configure the connection through environment variables. Never hardcode secrets.
+- Define SQLAlchemy models and the first Alembic migration for these tables:
+  users, user_profiles, products, brands, ingredients, product_ingredients, data_sources, analyses, routines, routine_items, nutrition_entries, admin_audit_logs
+- Requirements for the schema:
+  - UUID primary keys, created_at / updated_at timestamps on all tables
+  - Proper foreign keys with sensible ON DELETE behavior
+  - Unique constraints (e.g., users.email, product barcode, product_ingredients composite uniqueness)
+  - Indexes on search/lookup columns (barcode, product name, ingredient normalized name, user_id foreign keys)
+  - users.role enum: user, admin
+  - products: verification_status enum (unverified, verified, rejected), source reference to data_sources
+  - ingredients: name, normalized_name (unique), description, reference notes
+  - analyses: store user_id, product_id, structured_result (JSONB), model_used, created_at
+  - routines: type enum (morning, evening)
+  - routine_items: position/order field
+- Run the migration against the dev database and confirm it applies and rolls back cleanly.
+- Document the schema in docs/database/ with an ER diagram (Mermaid) and a table-by-table description.
+
+4. WEB APP (Next.js)
+- Initialize in apps/web with TypeScript, ESLint, Tailwind CSS, App Router, src directory.
+- Create a clean folder structure: src/app, src/components, src/lib, src/services, src/types.
+- Create src/lib/api.ts: a typed API client wrapper reading NEXT_PUBLIC_API_URL.
+- Build a simple landing/status page that calls GET /api/v1/health and displays backend + database status.
+- Add .env.example.
+
+5. MOBILE APP (Expo React Native)
+- Initialize in apps/mobile with TypeScript and Expo Router.
+- Folder structure: app/, src/components, src/services, src/types, src/constants.
+- Create src/services/api.ts: a typed API client reading EXPO_PUBLIC_API_URL.
+- Build a simple home screen that calls GET /api/v1/health and displays backend + database status.
+- Document how to run on Android emulator, iOS simulator, and a physical device (note the LAN IP vs localhost issue for API URL).
+- Add .env.example.
+
+6. SHARED CONTRACT
+- Generate and expose the OpenAPI spec from FastAPI (docs/api/openapi.json).
+- Add a documented plan for generating typed API clients for web and mobile from this spec (do not over-engineer; a short doc is enough).
+
+7. DOCUMENTATION
+- docs/architecture/overview.md: system diagram (Mermaid), data flow, key decisions (shared backend, separate UIs).
+- docs/api/conventions.md: URL conventions, versioning, error format, auth approach (JWT, to be implemented in Week 2-3), pagination format.
+- docs/database/schema.md: as described above.
+- README: prerequisites, one-command-per-app setup, env variables table, how to run all three apps, how to run tests and migrations, troubleshooting section.
+
+8. DEV EXPERIENCE
+- Add root-level scripts (package.json or Makefile) such as: dev:web, dev:mobile, dev:backend, test:backend, lint, migrate.
+- Make sure a new developer can clone the repo and get all three apps running by following the README alone.
+
+CONSTRAINTS AND RULES
+- Do not implement authentication logic, AI calls, product search, or UI features. Only stubs and placeholders.
+- No secrets in code or git history. Only .env.example files with dummy values.
+- Use type hints in Python and strict TypeScript everywhere.
+- Keep code clean, modular, and commented where the intent is not obvious.
+- If any decision is ambiguous, choose the simplest production-sensible option and record it in docs/architecture/decisions.md.
+- Do not add libraries that are not necessary. List every dependency you add and why.
+
+VERIFICATION (run and report results for each)
+1. Backend starts: uvicorn app.main:app --reload and /api/v1/health returns database: "connected".
+2. pytest passes.
+3. Alembic upgrade head succeeds on a fresh database; downgrade base works.
+4. Web app runs and shows live backend/database status.
+5. Mobile app runs in Expo and shows live backend/database status.
+6. ruff and ESLint pass with no errors.
+
+DELIVERABLE
+A clean Git history on the develop branch with a complete foundation. At the end, give me:
+- A summary of everything created
+- The exact commands to run each app
+- A list of environment variables I must fill in
+- Any decisions made or issues found
+- Suggested first tasks for Week 2 (authentication)

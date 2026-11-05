@@ -1,1 +1,1 @@
-"""Business logic for future nutrition tracking."""
+"""Nutrition use cases will be implemented in a later iteration."""

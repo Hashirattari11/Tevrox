@@ -1,40 +1,43 @@
-import os
-from collections.abc import Generator
+from unittest.mock import MagicMock
 
+import pytest
 from fastapi.testclient import TestClient
-
-from app.database.mongodb import get_mongodb_status
-
-os.environ.setdefault("ENVIRONMENT", "test")
-os.environ.setdefault("JWT_SECRET", "test-secret-which-is-at-least-thirty-two-characters")
+from sqlalchemy.exc import OperationalError
 
 from app.database.session import get_db
 from app.main import app
 
-
-class UnavailableDatabase:
-    def execute(self, _statement: object) -> None:
-        raise ConnectionError("Database is unavailable")
-
-
-def unavailable_db() -> Generator[UnavailableDatabase, None, None]:
-    yield UnavailableDatabase()
+@pytest.fixture
+def client():
+    # The context manager runs FastAPI's lifespan, which initializes MongoDB.
+    with TestClient(app) as test_client:
+        yield test_client
 
 
-def test_health_reports_database_status() -> None:
-    app.dependency_overrides[get_db] = unavailable_db
-    app.dependency_overrides[get_mongodb_status] = lambda: "unreachable"
-    try:
-        with TestClient(app) as client:
-            response = client.get("/api/v1/health")
-    finally:
-        app.dependency_overrides.pop(get_db)
-        app.dependency_overrides.pop(get_mongodb_status)
+@pytest.fixture(autouse=True)
+def clear_overrides():
+    yield
+    app.dependency_overrides.clear()
+
+
+def test_health_reports_connected_database(client: TestClient) -> None:
+    database = MagicMock()
+    app.dependency_overrides[get_db] = lambda: database
+
+    response = client.get("/api/v1/health")
+
     assert response.status_code == 200
-    assert response.json() == {
-        "status": "ok",
-        "service": "tevrox-backend",
-        "version": "0.1.0",
-        "database": "unreachable",
-        "mongodb": "unreachable",
-    }
+    assert response.json()["database"] == "connected"
+    assert response.json()["status"] == "ok"
+    database.execute.assert_called_once()
+
+
+def test_health_reports_unreachable_database(client: TestClient) -> None:
+    database = MagicMock()
+    database.execute.side_effect = OperationalError("SELECT 1", {}, Exception("offline"))
+    app.dependency_overrides[get_db] = lambda: database
+
+    response = client.get("/api/v1/health")
+
+    assert response.status_code == 200
+    assert response.json()["database"] == "unreachable"

@@ -1,6 +1,5 @@
 import re
 from datetime import datetime
-from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -43,12 +42,19 @@ class RefreshRequest(BaseModel):
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: UUID
+    id: str
     email: str
     role: str
     is_active: bool
     is_email_verified: bool
     last_login_at: datetime | None
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_id_to_str(cls, value: object) -> str:
+        if value is None:
+            return value
+        return str(value)
 
 
 class TokenResponse(BaseModel):

@@ -9,6 +9,7 @@ erDiagram
   users ||--o{ routines : owns
   users ||--o{ nutrition_entries : records
   users ||--o{ admin_audit_logs : performs
+  users ||--o{ refresh_tokens : manages
   brands ||--o{ products : labels
   data_sources ||--o{ products : sources
   products ||--o{ product_ingredients : contains

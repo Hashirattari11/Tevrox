@@ -1,1 +1,1 @@
-from . import router as router
+"""Future nutrition tracking module."""

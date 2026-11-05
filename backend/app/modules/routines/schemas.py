@@ -1,1 +1,1 @@
-"""Pydantic schemas for future routine endpoints."""
+"""Routine contracts will be defined with routine features."""

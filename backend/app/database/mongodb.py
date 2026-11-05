@@ -14,6 +14,11 @@ def get_mongo_client(request: Request) -> AsyncMongoClient[dict[str, Any]]:
     return request.app.state.mongo_client
 
 
+def get_mongo_database(request: Request) -> Any:
+    """Return Tevrox's MongoDB database for application collections."""
+    return request.app.state.mongo_database
+
+
 async def get_mongodb_status(
     client: Annotated[AsyncMongoClient[dict[str, Any]], Depends(get_mongo_client)],
 ) -> MongoStatus:

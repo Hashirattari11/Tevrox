@@ -1,1 +1,1 @@
-"""Nutrition persistence models are defined in the shared database registry."""
+"""Nutrition ORM models live in app.database.models."""

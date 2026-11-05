@@ -4,5 +4,5 @@ router = APIRouter(prefix="/routines", tags=["routines"])
 
 
 @router.get("/")
-def placeholder() -> dict[str, str]:
-    return {"message": "Routine endpoints are planned."}
+def routines_placeholder() -> dict[str, str]:
+    return {"message": "Routine endpoints are not implemented yet."}

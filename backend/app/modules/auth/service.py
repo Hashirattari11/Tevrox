@@ -1,124 +1,203 @@
-import uuid
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
-from fastapi import HTTPException, Request
-from sqlalchemy import select, update
+from argon2 import PasswordHasher
+from fastapi import HTTPException
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.security import (
-    create_access_token,
-    generate_refresh_token,
-    hash_password,
-    hash_refresh_token,
-    verify_password,
-)
-from app.database.models import RefreshToken, User, UserProfile
-from app.modules.auth.schemas import LoginRequest, SignupRequest
+from app.core.security import create_access_token, generate_refresh_token, hash_refresh_token
+from app.database.models import User, RefreshToken
+from app.database.models import UserProfile
+from app.modules.auth.schemas import UserResponse
+
+_hasher = PasswordHasher()
 
 
-def _issue(db: Session, user: User, request: Request, family_id: uuid.UUID | None = None) -> dict:
-    raw = generate_refresh_token()
-    row = RefreshToken(
-        user_id=user.id,
-        token_hash=hash_refresh_token(raw),
-        family_id=family_id or uuid.uuid4(),
-        expires_at=datetime.now(UTC) + timedelta(days=get_settings().refresh_token_expire_days),
-        user_agent=request.headers.get("user-agent", "")[:512] or None,
-        ip_address=request.client.host if request.client else None,
-    )
-    db.add(row)
-    db.flush()
-    return {
-        "access_token": create_access_token(str(user.id), user.role.value),
-        "refresh_token": raw,
-        "token_type": "bearer",
-        "user": user,
-    }
+# ─── Helpers ──────────────────────────────────────────────────────────────
+
+def hash_password(password: str) -> str:
+    return _hasher.hash(password)
 
 
-def signup(db: Session, payload: SignupRequest, request: Request) -> dict:
-    if db.scalar(select(User.id).where(User.email == payload.email)):
+def verify_password(password: str, hashed: str) -> bool:
+    try:
+        return _hasher.verify(hashed, password)
+    except Exception:
+        return False
+
+
+# ─── Signup ───────────────────────────────────────────────────────────────
+
+def signup(db: Session, payload: Any, request: Any) -> dict[str, any]:
+    """Create a new user + empty profile. Return user + tokens."""
+    email = payload.email.strip().lower()
+    # Check duplicate
+    existing = db.scalar(select(User).where(User.email == email))
+    if existing:
         raise HTTPException(409, "AUTH_EMAIL_TAKEN")
-    user = User(email=payload.email, password_hash=hash_password(payload.password))
+    # Create user
+    user = User(
+        email=email,
+        password_hash=hash_password(payload.password),
+        role="user",
+    )
     db.add(user)
-    db.flush()
-    db.add(
-        UserProfile(user_id=user.id, full_name=payload.full_name, skin_concerns=[], preferences={})
-    )
-    result = _issue(db, user, request)
     db.commit()
-    return result
+    db.refresh(user)
+    # Create empty profile
+    profile = UserProfile(user_id=user.id)
+    db.add(profile)
+    db.commit()
+    # Create tokens
+    access = create_access_token(user_id=str(user.id), role=user.role)
+    refresh = generate_refresh_token()
+    refresh_hash = hash_refresh_token(refresh)
+    expires_at = datetime.now(UTC) + timedelta(
+        days=get_settings().refresh_token_expire_days
+    )
+    rt = RefreshToken(
+        user_id=user.id,
+        token_hash=refresh_hash,
+        family_id=user.id,
+        expires_at=expires_at,
+    )
+    db.add(rt)
+    db.commit()
+    # Build user response
+    user_response = UserResponse.model_validate(user)
+    tokens = {
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "user": user_response,
+    }
+    return tokens
 
 
-def login(db: Session, payload: LoginRequest, request: Request) -> dict:
+# ─── Login ────────────────────────────────────────────────────────────────
+
+def login(db: Session, payload: Any, request: Any) -> dict[str, any]:
+    """Authenticate user. Return user + tokens. Updates last_login_at."""
     user = db.scalar(select(User).where(User.email == payload.email))
-    # Always verify a real hash where possible; callers receive the same failure either way.
-    valid = user is not None and verify_password(payload.password, user.password_hash)
-    if not valid or user is None or not user.is_active:
+    if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(401, "AUTH_INVALID_CREDENTIALS")
+    # Update last_login_at
     user.last_login_at = datetime.now(UTC)
-    result = _issue(db, user, request)
     db.commit()
-    return result
-
-
-def refresh(db: Session, raw: str, request: Request) -> dict:
-    row = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == hash_refresh_token(raw)))
-    now = datetime.now(UTC)
-    if row is None:
-        raise HTTPException(401, "AUTH_TOKEN_INVALID")
-    if row.revoked_at is not None:
-        if row.replaced_by is not None:
-            db.execute(
-                update(RefreshToken)
-                .where(RefreshToken.family_id == row.family_id)
-                .values(revoked_at=now)
-            )
-            db.commit()
-        raise HTTPException(401, "AUTH_TOKEN_INVALID")
-    if row.expires_at <= now:
-        row.revoked_at = now
-        db.commit()
-        raise HTTPException(401, "AUTH_TOKEN_EXPIRED")
-    user = db.get(User, row.user_id)
-    if user is None or not user.is_active:
-        raise HTTPException(401, "AUTH_TOKEN_INVALID")
-    result = _issue(db, user, request, row.family_id)
-    replacement = db.scalar(
-        select(RefreshToken).where(
-            RefreshToken.token_hash == hash_refresh_token(result["refresh_token"])
-        )
+    # Create tokens
+    access = create_access_token(user_id=str(user.id), role=user.role)
+    refresh = generate_refresh_token()
+    refresh_hash = hash_refresh_token(refresh)
+    expires_at = datetime.now(UTC) + timedelta(
+        days=get_settings().refresh_token_expire_days
     )
-    row.revoked_at = now
-    row.replaced_by = replacement.id if replacement else None
+    rt = RefreshToken(
+        user_id=user.id,
+        token_hash=refresh_hash,
+        family_id=user.id,
+        expires_at=expires_at,
+    )
+    db.add(rt)
     db.commit()
-    return result
+    db.refresh(user)
+    user_response = UserResponse.model_validate(user)
+    tokens = {
+        "access_token": access,
+        "refresh_token": refresh,
+        "token_type": "bearer",
+        "user": user_response,
+    }
+    return tokens
 
 
-def logout(db: Session, raw: str) -> None:
-    row = db.scalar(select(RefreshToken).where(RefreshToken.token_hash == hash_refresh_token(raw)))
-    if row and row.revoked_at is None:
-        row.revoked_at = datetime.now(UTC)
+# ─── Refresh ──────────────────────────────────────────────────────────────
+
+def refresh(
+    db: Session, refresh_token: str, request: Any
+) -> dict[str, any]:
+    """Rotate refresh token. Return new access + new refresh token."""
+    provided_hash = hash_refresh_token(refresh_token)
+    rt = db.scalar(
+        select(RefreshToken).where(RefreshToken.token_hash == provided_hash)
+    )
+    if rt is None or rt.revoked_at is not None:
+        raise HTTPException(401, "AUTH_TOKEN_INVALID")
+    if rt.expires_at < datetime.now(UTC):
+        raise HTTPException(401, "AUTH_TOKEN_EXPIRED")
+    # Revoke old token
+    rt.revoked_at = datetime.now(UTC)
+    db.commit()
+    # Get user
+    user = db.get(User, rt.user_id)
+    # Generate new refresh token
+    new_refresh = generate_refresh_token()
+    new_refresh_hash = hash_refresh_token(new_refresh)
+    new_expires = datetime.now(UTC) + timedelta(
+        days=get_settings().refresh_token_expire_days
+    )
+    new_rt = RefreshToken(
+        user_id=user.id,
+        token_hash=new_refresh_hash,
+        family_id=user.id,
+        expires_at=new_expires,
+    )
+    db.add(new_rt)
+    db.commit()
+    # Create new access token
+    access = create_access_token(user_id=str(user.id), role=user.role)
+    user_response = UserResponse.model_validate(user)
+    tokens = {
+        "access_token": access,
+        "refresh_token": new_refresh,
+        "token_type": "bearer",
+        "user": user_response,
+    }
+    return tokens
+
+
+# ─── Logout ───────────────────────────────────────────────────────────────
+
+def logout(db: Session, refresh_token: str) -> None:
+    """Revoke the supplied refresh token."""
+    provided_hash = hash_refresh_token(refresh_token)
+    rt = db.scalar(
+        select(RefreshToken).where(RefreshToken.token_hash == provided_hash)
+    )
+    if rt is not None:
+        rt.revoked_at = datetime.now(UTC)
         db.commit()
 
+
+# ─── Logout-All ───────────────────────────────────────────────────────────
 
 def logout_all(db: Session, user: User) -> None:
+    """Revoke all refresh tokens of the current user."""
     db.execute(
-        update(RefreshToken)
+        RefreshToken.__table__.update()
         .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=datetime.now(UTC))
     )
     db.commit()
 
 
-def change_password(db: Session, user: User, current: str, new: str) -> None:
-    if not verify_password(current, user.password_hash):
+# ─── Change-Password ──────────────────────────────────────────────────────
+
+def change_password(
+    db: Session, user: User, current_password: str, new_password: str
+) -> None:
+    """Verify current password, hash new one, revoke all other refresh tokens."""
+    if not verify_password(current_password, user.password_hash):
         raise HTTPException(401, "AUTH_INVALID_CREDENTIALS")
-    user.password_hash = hash_password(new)
-    db.execute(
-        update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
-        .values(revoked_at=datetime.now(UTC))
-    )
+    # Update password
+    user.password_hash = hash_password(new_password)
     db.commit()
+    # Revoke all refresh tokens
+    logout_all(db, user)
+
+
+# ─── Me ───────────────────────────────────────────────────────────────────
+
+def me(user: Any) -> User:
+    return user  # user already injected by dependency

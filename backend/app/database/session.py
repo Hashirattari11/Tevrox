@@ -5,13 +5,15 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.core.config import get_settings
 
-settings = get_settings()
-# Defer the actual driver connection until first use; a local import remains usable
-# even before a developer has configured their Supabase URL.
+# Build engine; connect_args only for non-SQLite drivers
+_database_url = get_settings().database_url
+_sqlite_prefix = "sqlite"
+connect_args = {"check_same_thread": False} if _database_url.startswith(_sqlite_prefix) else {"connect_timeout": 5}
+
 engine = create_engine(
-    settings.database_url,
+    _database_url,
     pool_pre_ping=True,
-    connect_args={"connect_timeout": 5},
+    connect_args=connect_args,
 )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 

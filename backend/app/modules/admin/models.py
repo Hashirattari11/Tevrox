@@ -1,1 +1,1 @@
-"""Administrative audit persistence models are in the shared model registry."""
+"""AdminAuditLog ORM model lives in app.database.models."""

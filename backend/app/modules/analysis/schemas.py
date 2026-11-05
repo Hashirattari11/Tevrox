@@ -1,1 +1,1 @@
-"""Pydantic request and response schemas for future analysis endpoints."""
+"""Analysis contracts will be defined with AI integration."""

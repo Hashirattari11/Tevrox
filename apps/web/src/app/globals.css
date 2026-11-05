@@ -2,3 +2,36 @@
 
 :root { color-scheme: light; font-family: Arial, Helvetica, sans-serif; }
 body { margin: 0; background: #f6f8f7; color: #15302a; }
+
+.nav-link {
+  display: block;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #475569;
+  text-decoration: none;
+}
+.nav-link:hover { background: #f1f5f9; color: #0f172a; }
+.nav-link-active { background: #ecfdf5; color: #047857; font-weight: 600; }
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.1;
+  border-radius: 9999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.chip:hover { background: #f8fafc; border-color: #cbd5e1; }
+.chip-active {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #047857;
+  font-weight: 600;
+}

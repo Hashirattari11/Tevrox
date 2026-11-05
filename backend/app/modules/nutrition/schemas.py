@@ -1,1 +1,1 @@
-"""Pydantic schemas for future nutrition tracking endpoints."""
+"""Nutrition contracts will be defined with nutrition features."""

@@ -1,1 +1,1 @@
-"""Analysis persistence models are defined in the shared database model registry."""
+"""Analysis ORM models live in app.database.models."""

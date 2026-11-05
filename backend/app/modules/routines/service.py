@@ -1,1 +1,1 @@
-"""Business logic for future skincare routine management."""
+"""Routine use cases will be implemented in a later iteration."""

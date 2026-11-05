@@ -38,3 +38,8 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# Local dev SQLite database
+backend/tevrox.db
+backend/tevrox_test.db
+

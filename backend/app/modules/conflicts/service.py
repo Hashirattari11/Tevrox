@@ -1,1 +1,1 @@
-"""Business logic for future ingredient compatibility checks."""
+"""Conflict use cases will be implemented in a later iteration."""

@@ -1,7 +1,9 @@
 """Authentication and profile lifecycle."""
 
+import uuid
+
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import JSONB
 
 from alembic import op
 
@@ -9,6 +11,8 @@ revision = "0002_auth_profiles"
 down_revision = "0001_initial_schema"
 branch_labels = None
 depends_on = None
+
+PortableJSONB = sa.JSON().with_variant(JSONB(), "postgresql")
 
 
 def upgrade() -> None:
@@ -23,30 +27,32 @@ def upgrade() -> None:
     op.add_column("user_profiles", sa.Column("full_name", sa.String(160)))
     op.add_column(
         "user_profiles",
-        sa.Column("skin_concerns", postgresql.JSONB(), server_default="[]", nullable=False),
+        sa.Column("skin_concerns", PortableJSONB, server_default="'[]'", nullable=False),
     )
     op.add_column(
         "user_profiles",
-        sa.Column("preferences", postgresql.JSONB(), server_default="{}", nullable=False),
+        sa.Column("preferences", PortableJSONB, server_default="'{}'", nullable=False),
     )
     op.add_column(
         "user_profiles",
-        sa.Column("onboarding_completed", sa.Boolean(), server_default=sa.false(), nullable=False),
+        sa.Column(
+            "onboarding_completed", sa.Boolean(), server_default=sa.false(), nullable=False
+        ),
     )
     op.create_table(
         "refresh_tokens",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
+        sa.Column("id", sa.Uuid, primary_key=True, default=uuid.uuid4),
         sa.Column(
             "user_id",
-            postgresql.UUID(as_uuid=True),
+            sa.Uuid,
             sa.ForeignKey("users.id", ondelete="CASCADE"),
             nullable=False,
         ),
-        sa.Column("token_hash", sa.String(64), nullable=False, unique=True),
-        sa.Column("family_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("token_hash", sa.String(64), nullable=False),
+        sa.Column("family_id", sa.Uuid, nullable=False),
         sa.Column("expires_at", sa.DateTime(timezone=True), nullable=False),
         sa.Column("revoked_at", sa.DateTime(timezone=True)),
-        sa.Column("replaced_by", postgresql.UUID(as_uuid=True)),
+        sa.Column("replaced_by", sa.Uuid),
         sa.Column(
             "created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False
         ),
@@ -55,9 +61,11 @@ def upgrade() -> None:
     )
     op.create_index("ix_refresh_tokens_user_id", "refresh_tokens", ["user_id"])
     op.create_index("ix_refresh_tokens_family_id", "refresh_tokens", ["family_id"])
+    op.create_index("ix_refresh_tokens_token_hash", "refresh_tokens", ["token_hash"], unique=True)
 
 
 def downgrade() -> None:
+    op.drop_index("ix_refresh_tokens_token_hash", table_name="refresh_tokens")
     op.drop_index("ix_refresh_tokens_family_id", table_name="refresh_tokens")
     op.drop_index("ix_refresh_tokens_user_id", table_name="refresh_tokens")
     op.drop_table("refresh_tokens")

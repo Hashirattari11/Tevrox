@@ -1,1 +1,1 @@
-"""Pydantic schemas for future ingredient conflict endpoints."""
+"""Conflict contracts will be defined with conflict features."""

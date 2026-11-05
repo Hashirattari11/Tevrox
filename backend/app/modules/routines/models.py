@@ -1,1 +1,1 @@
-"""Routine persistence models are defined in the shared database registry."""
+"""Routine ORM models live in app.database.models."""

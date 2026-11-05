@@ -34,7 +34,7 @@ pnpm dev:mobile
 
 Start the local MongoDB service first with `pnpm mongo:up`. Its database files persist in the `mongo_data` Docker volume. Stop the service without deleting its data with `pnpm mongo:down`.
 
-The web status page is at http://localhost:3000 and the API at http://localhost:8000/api/v1/health. Android emulator can reach the host as `10.0.2.2`; the mobile fallback is configured accordingly. For iOS simulator use `localhost`. For a physical device, set `EXPO_PUBLIC_API_URL` to `http://<computer-LAN-IP>:8000`, keep both devices on the same network, and allow the backend port through the host firewall. CORS origins are for browser clients; Expo native networking does not enforce browser CORS.
+The web status page is at http://localhost:3000 and the API at http://localhost:8010/api/v1/health. Android emulator can reach the host as `10.0.2.2`; the mobile fallback is configured accordingly. For iOS simulator use `localhost`. For a physical device, set `EXPO_PUBLIC_API_URL` to `http://<computer-LAN-IP>:8010`, keep both devices on the same network, and allow the backend port through the host firewall. CORS origins are for browser clients; Expo native networking does not enforce browser CORS.
 
 - Android emulator: start an emulator in Android Studio, then run `pnpm --filter @tevrox/mobile android`.
 - iOS simulator: on macOS with Xcode installed, run `pnpm --filter @tevrox/mobile ios`; the platform default uses `localhost` for the API.
@@ -61,7 +61,7 @@ Check that Expo's SDK packages remain aligned with the pinned SDK and React Nati
 | `ENVIRONMENT` | backend | Environment name (development by default) |
 | `AI_PROVIDER_API_KEY` | backend | Empty until an AI provider is selected |
 | `PRODUCT_API_KEY` | backend | Empty until a product data provider is selected |
-| `NEXT_PUBLIC_API_URL` | web | API origin, normally `http://localhost:8000` |
+| `NEXT_PUBLIC_API_URL` | web | API origin, normally `http://localhost:8010` |
 | `EXPO_PUBLIC_API_URL` | mobile | API origin; physical devices must use the computer's LAN IP |
 
 ## Database and backend
@@ -98,7 +98,7 @@ docs/           Architecture, schema, API conventions, OpenAPI contract
 - `database: unreachable`: check the root `.env` `DATABASE_URL`, Supabase network access, and SSL settings from the Supabase connection panel.
 - `mongodb: unreachable`: check `MONGODB_URL`, Atlas IP access rules or local MongoDB service availability, and database credentials.
 - Web cannot reach the API: run the backend and set `NEXT_PUBLIC_API_URL`; add the web origin to `ALLOWED_ORIGINS`.
-- Device cannot reach the API: `localhost` points at the device. Use the development computer's LAN IP and ensure port 8000 is reachable.
+- Device cannot reach the API: `localhost` points at the device. Use the development computer's LAN IP and ensure port 8010 is reachable.
 - Migration connection fails: verify the URL and that the Supabase database accepts connections from your network. Migrations need a direct connection or session pooler, not the transaction pooler for all DDL workflows.
 - iOS simulator requires macOS/Xcode; Android emulator requires Android Studio and an installed emulator image.
 
