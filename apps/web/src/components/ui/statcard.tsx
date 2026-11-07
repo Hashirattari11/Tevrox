@@ -1,5 +1,8 @@
 import * as React from "react";
 
+import { cn } from "@/lib/utils";
+import { TevroxBadge } from "@/components/ui/badge";
+
 export interface TevroxStatCardProps {
   /** Stat value */
   value: string | number;
@@ -7,58 +10,44 @@ export interface TevroxStatCardProps {
   label: string;
   /** Stat description/subtitle */
   subtitle?: string;
-  /** Status color: verified, unverified, rejected */
-  status?:
-    | "verified"
-    | "unverified"
-    | "rejected"
-    | "none";
-  /** Icon name or component */
+  /** Status color */
+  status?: "verified" | "unverified" | "rejected" | "none";
+  /** Icon component */
   Icon?: React.ComponentType<{ className?: string; size?: number }>;
 }
+
+const STATUS_CLASSES: Record<NonNullable<TevroxStatCardProps["status"]>, string> = {
+  verified: "text-emerald-700",
+  unverified: "text-amber-700",
+  rejected: "text-red-700",
+  none: "text-neutral-500",
+};
 
 export function TevroxStatCard({
   value,
   label,
   subtitle,
   status,
-  Icon: IconComponent,
+  Icon,
 }: TevroxStatCardProps) {
-  const statusStyles = {
-    verified: {
-      bg: "var(--tevrox-success)",
-      iconColor: "var(--tevrox-success)",
-    },
-    unverified: {
-      bg: "var(--tevrox-warning)",
-      iconColor: "var(--tevrox-warning)",
-    },
-    rejected: {
-      bg: "var(--tevrox-danger)",
-      iconColor: "var(--tevrox-danger)",
-    },
-    none: {
-      bg: "var(--tevrox-neutral-100)",
-      iconColor: "var(--tevrox-neutral-500)",
-    },
-  }[status] || { bg: "var(--tevrox-neutral-100)", iconColor: "var(--tevrox-neutral-500)" };
+  const statusClass = status ? STATUS_CLASSES[status] : STATUS_CLASSES.none;
 
   return (
-    <div className="bg-white rounded-lg p-5 shadow-sm border border-neutral-100">
-      <div className="flex items-start justify-between">
+    <div className="rounded-xl border border-neutral-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-neutral-500 uppercase tracking-wider">{label}</p>
-          <p className="text-2xl font-bold text-neutral-900">{value}</p>
-          {subtitle && <p className="text-neutral-400 text-sm">{subtitle}</p>}
+          <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
+            {label}
+          </p>
+          <p className="mt-1 text-2xl font-bold text-neutral-900">{value}</p>
+          {subtitle && <p className="mt-0.5 text-sm text-neutral-500">{subtitle}</p>}
         </div>
-        {IconComponent && (
-          <IconComponent
-            className={cn("w-6 h-6", `text-${statusStyles.iconColor}`)}
-          />
-        )}
-        {status && (
-          <TevroxBadge status={status} />
-        )}
+        <div className="flex flex-col items-end gap-2">
+          {Icon && <Icon className={cn("h-6 w-6", statusClass)} aria-hidden />}
+          {status && status !== "none" && (
+            <TevroxBadge status={status}>{status}</TevroxBadge>
+          )}
+        </div>
       </div>
     </div>
   );

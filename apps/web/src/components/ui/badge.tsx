@@ -1,49 +1,33 @@
 import * as React from "react";
 
+import { cn } from "@/lib/utils";
+
 export interface TevroxBadgeProps {
   /** Badge text */
   children: React.ReactNode;
-  /** Status color: verified, unverified, rejected, info */
+  /** Status color */
   status?: "verified" | "unverified" | "rejected" | "info";
   /** Additional classes */
   className?: string;
 }
 
+const STATUS_CLASSES = {
+  verified: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+  unverified: "bg-amber-100 text-amber-900 ring-amber-200",
+  rejected: "bg-red-100 text-red-800 ring-red-200",
+  info: "bg-sky-100 text-sky-900 ring-sky-200",
+} as const;
+
 export function TevroxBadge({
   children,
-  status,
+  status = "info",
   className = "",
 }: TevroxBadgeProps) {
-  const statusStyles = {
-    verified: {
-      bg: "var(--tevrox-success)",
-      color: "var(--tevrox-white)",
-    },
-    unverified: {
-      bg: "var(--tevrox-warning)",
-      color: "var(--tevrox-white)",
-    },
-    rejected: {
-      bg: "var(--tevrox-danger)",
-      color: "var(--tevrox-white)",
-    },
-    info: {
-      bg: "var(--tevrox-info)",
-      color: "var(--tevrox-white)",
-    },
-  }[status] || {
-    bg: "var(--tevrox-neutral-200)",
-    color: "var(--tevrox-neutral-700)",
-  };
-
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-        "bg-white/10",
-        statusStyles.bg,
-        "text-white",
-        "align-middle",
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset",
+        STATUS_CLASSES[status],
         className,
       )}
     >

@@ -6,12 +6,13 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import { TevroxSidebar } from "@/components/ui/sidebar";
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Products", href: "/products" },
-  { label: "Admin Review", href: "/admin/products" },
+  { label: "Add product", href: "/products/add" },
+  { label: "Admin products", href: "/admin/products" },
+  { label: "Admin ingredients", href: "/admin/ingredients" },
 ] as const;
 
 export function TevroxLayout({
@@ -30,10 +31,6 @@ export function TevroxLayout({
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
   if (loading || !user) return null;
 
   const handleLogout = async () => {
@@ -43,7 +40,7 @@ export function TevroxLayout({
 
   const nav = (
     <nav aria-label="Main navigation" className="flex flex-col gap-1">
-      {NAV_ITEMS.filter((item) => item.href !== "/admin/products" || isAdmin).map((item) => {
+      {NAV_ITEMS.filter((item) => !item.href.startsWith("/admin") || isAdmin).map((item) => {
         const active = pathname === item.href || pathname.startsWith(item.href + "/");
         return (
           <Link

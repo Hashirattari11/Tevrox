@@ -1,21 +1,20 @@
 import * as React from "react";
 
-export interface TevroxCardProps {
+import { cn } from "@/lib/utils";
+
+export interface TevroxCardProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Card children */
   children: React.ReactNode;
   /** Additional classes */
   className?: string;
-  /** Shadow level: sm, md, lg */
+  /** Shadow level */
   shadow?: "sm" | "md" | "lg";
-  /** Background override */
-  bg?: string;
 }
 
 export function TevroxCard({
   children,
   className = "",
-  shadow = "md",
-  bg = "var(--tevrox-card)",
+  shadow = "sm",
   ...props
 }: TevroxCardProps) {
   const shadowMap = {
@@ -26,12 +25,7 @@ export function TevroxCard({
 
   return (
     <div
-      className={cn(
-        "rounded-lg bg-white p-6 shadow-sm",
-        shadowMap,
-        className,
-        "border-border"
-      )}
+      className={cn("rounded-xl border border-neutral-200 bg-white p-6", shadowMap, className)}
       {...props}
     >
       {children}

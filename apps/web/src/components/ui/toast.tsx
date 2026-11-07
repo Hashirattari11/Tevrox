@@ -1,6 +1,8 @@
 import * as React from "react";
 import { CheckCircle, XCircle } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 export interface TevroxToastProps {
   /** Toast message */
   message: string;
@@ -19,18 +21,18 @@ export function TevroxToast({
   closable = true,
 }: TevroxToastProps) {
   const [isVisible, setIsVisible] = React.useState(true);
-  const [closeTimeout, setCloseTimeout] = React.useState<number | null>(null);
+  const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   React.useEffect(() => {
     if (!isVisible) return;
     const timeout = setTimeout(() => setIsVisible(false), duration);
-    setCloseTimeout(timeout);
+    closeTimeoutRef.current = timeout;
     return () => clearTimeout(timeout);
   }, [isVisible, duration]);
 
   const handleClose = () => {
     setIsVisible(false);
-    if (closeTimeout) clearTimeout(closeTimeout);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
   };
 
   const typeStyles = {
@@ -61,7 +63,7 @@ export function TevroxToast({
       role="alert"
       aria-live="polite"
     >
-      {typeIcons[type.type] || typeStyles.icon}
+      {typeStyles.icon}
       <span className="flex-1 whitespace-nowrap">{message}</span>
       {closable && (
         <button

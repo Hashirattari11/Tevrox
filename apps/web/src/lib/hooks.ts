@@ -3,21 +3,15 @@
 import { useEffect, useState } from "react";
 
 export function useLocalStorage<T>(key: string, initialValue: T): [T, (value: T) => void] {
-  const [stored, setStored] = useState<T>(initialValue);
-
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
+  const [stored, setStored] = useState<T>(() => {
+    if (typeof window === "undefined") return initialValue;
     try {
       const raw = window.localStorage.getItem(key);
-      if (raw != null) setStored(JSON.parse(raw) as T);
+      return raw != null ? (JSON.parse(raw) as T) : initialValue;
     } catch {
-      // ignore corrupted values
-    } finally {
-      setLoaded(true);
+      return initialValue;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key]);
+  });
 
   const setValue = (value: T) => {
     setStored(value);

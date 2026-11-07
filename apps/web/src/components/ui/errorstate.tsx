@@ -1,5 +1,5 @@
 import * as React from "react";
-import { XCircle as RCXCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
 
 export interface TevroxErrorStateProps {
   /** Error title */
@@ -10,7 +10,7 @@ export interface TevroxErrorStateProps {
   retryLabel?: string;
   /** On retry handler */
   onRetry?: () => void;
-  /** Additional action button */
+  /** Additional action button text */
   actionLabel?: string;
   /** On additional action handler */
   onAction?: () => void;
@@ -25,25 +25,33 @@ export function TevroxErrorState({
   onAction,
 }: TevroxErrorStateProps) {
   return (
-    <div className="p-6 bg-neutral-50 rounded-md border border-neutral-200">
-      <RCXCircle className="w-6 h-6 text-danger mb-4 opacity-50" />
-      <h3 className="text-sm font-medium text-neutral-900 mb-1">{title}</h3>
-      {message && <p className="text-neutral-500 text-sm mb-4">{message}</p>}
-      <div className="flex gap-2">
-        <button
-          onClick={onRetry}
-          className="flex-1 py-1 rounded-md border border-primary text-primary hover:bg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        >
-          {retryLabel}
-        </button>
-        {actionLabel && (
-          <button
-            onClick={onAction}
-            className="flex-1 py-1 rounded-md border border-neutral-300 hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          >
-            {actionLabel}
-          </button>
-        )}
+    <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4">
+      <div className="flex items-start gap-3">
+        <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-500" aria-hidden />
+        <div>
+          <h3 className="text-sm font-semibold text-red-900">{title}</h3>
+          {message && <p className="mt-1 text-sm text-red-800">{message}</p>}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-900 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              >
+                {retryLabel}
+              </button>
+            )}
+            {actionLabel && onAction && (
+              <button
+                type="button"
+                onClick={onAction}
+                className="rounded-md border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-900 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              >
+                {actionLabel}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

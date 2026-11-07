@@ -1,8 +1,7 @@
 "use client";
 import * as React from "react";
 import Link from "next/link";
-import { HiHome, Package, TrendingUp, Grid3x3, Calendar, Salad, Settings, Users, AlertTriangle } from "lucide-react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { Home, Package, TrendingUp, Grid3x3, Calendar, Salad, Settings, Users, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface TevroxNavItemProps {
@@ -26,9 +25,7 @@ export function TevroxNavItem({
   label,
   active,
   enabled = true,
-  isAdmin = false,
 }: TevroxNavItemProps) {
-  const pathname = usePathname();
 
   return (
     <Link
@@ -69,7 +66,7 @@ export function TevroxNavItem({
 
 function Icon({ icon, className, ...props }: { icon: string; className: string }) {
   const IconComponent = {
-    Home: HiHome,
+    Home: Home,
     Package: Package,
     TrendingUp: TrendingUp,
     Grid3x3: Grid3x3,
@@ -79,6 +76,7 @@ function Icon({ icon, className, ...props }: { icon: string; className: string }
     Users: Users,
     AlertTriangle: AlertTriangle,
   }[icon];
+  if (!IconComponent) return null;
   return <IconComponent className={className} {...props} />;
 }
 

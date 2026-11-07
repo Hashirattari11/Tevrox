@@ -1,7 +1,9 @@
 import * as React from "react";
 
+import { cn } from "@/lib/utils";
+
 export interface TevroxPaginationProps {
-  /** Current page */
+  /** Current page (1-based) */
   page: number;
   /** Total pages */
   totalPages: number;
@@ -9,8 +11,14 @@ export interface TevroxPaginationProps {
   onPageChange: (page: number) => void;
   /** Whether pagination is disabled */
   disabled?: boolean;
-  /** Number of page links to show */
+  /** Number of page links to show around the current page */
   siblingCount?: number;
+}
+
+function pageRange(page: number, totalPages: number, siblingCount: number): number[] {
+  const start = Math.max(1, Math.min(page - siblingCount, totalPages - siblingCount * 2));
+  const end = Math.min(totalPages, Math.max(page + siblingCount, siblingCount * 2 + 1));
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
 }
 
 export function TevroxPagination({
@@ -20,80 +28,53 @@ export function TevroxPagination({
   disabled = false,
   siblingCount = 1,
 }: TevroxPaginationProps) {
-  const totalPageNumbers = siblingCount * 2 + 1;
+  if (totalPages <= 1) return null;
 
-  // Calculate start and end page numbers
-  let startPage, endPage;
-  if (totalPages <= totalPageNumbers) {
-    startPage = 1;
-    endPage = totalPages;
-  } else {
-    const maxDisplay = totalPageNumbers - siblingCount * 2;
-    if (page <= siblingCount + 1) {
-      startPage = 1;
-      endPage = totalPageNumbers;
-    } else if (page >= totalPages - siblingCount) {
-      startPage = totalPages - totalPageNumbers + 1;
-      endPage = totalPages;
-    } else {
-      startPage = page - siblingCount;
-      endPage = page + siblingCount;
-    }
-  }
+  const pages = pageRange(page, totalPages, siblingCount);
 
   return (
     <nav className="mt-4" aria-label="Pagination">
-      <ul className="flex list-none gap-1">
-        {/* Previous button */}
+      <ul className="flex list-none items-center gap-1">
         <li>
           <button
-            onClick={() => onPageChange(Math.max(page - 1, 1))}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 disabled:opacity-50 cursor-not-allowed",
-              `aria-disabled:${page <= 1}`
-            )}
+            type="button"
+            onClick={() => onPageChange(Math.max(1, page - 1))}
             disabled={page <= 1 || disabled}
             aria-label="Previous page"
+            className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            ← Prev
+            Prev
           </button>
         </li>
-
-        {/* Page numbers */}
-        {Array.from({ length: endPage - startPage + 1 }, (_, i) => {
-          const current = startPage + i;
-          return (
-            <li key={current}>
-              <button
-                onClick={() => onPageChange(current)}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm font-medium",
-                  {
-                    "bg-primary text-primary-inverse": current === page,
-                    "hover:bg-neutral-100": current !== page,
-                  }
-                )}
-                aria-label={current === page ? `Page ${current}` : `Go to page ${current}`}
-                disabled={current < 1 || current > totalPages}
-              >
-                {current}
-              </button>
-            </li>
-          );
-        })}
-
-        {/* Next button */}
+        {pages.map((current) => (
+          <li key={current}>
+            <button
+              type="button"
+              onClick={() => onPageChange(current)}
+              disabled={disabled || current === page}
+              aria-current={current === page ? "page" : undefined}
+              aria-label={current === page ? `Page ${current}` : `Go to page ${current}`}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm font-medium",
+                current === page
+                  ? "bg-emerald-700 text-white"
+                  : "hover:bg-neutral-100",
+                disabled && "cursor-not-allowed opacity-40"
+              )}
+            >
+              {current}
+            </button>
+          </li>
+        ))}
         <li>
           <button
-            onClick={() => onPageChange(Math.min(page + 1, totalPages))}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 disabled:opacity-50 cursor-not-allowed",
-              `aria-disabled:${page >= totalPages}`
-            )}
+            type="button"
+            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             disabled={page >= totalPages || disabled}
             aria-label="Next page"
+            className="rounded-md px-3 py-1.5 text-sm font-medium hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Next →
+            Next
           </button>
         </li>
       </ul>

@@ -1,78 +1,145 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Check, ChevronRight, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
-import {
-  TevroxLayout,
-  TevroxPageHeader,
-  TevroxStatCard,
-  TevroxCard,
-  TevroxInput,
-  TevroxButton,
-  TevroxChip,
-} from "@/components/ui";
+import { TevroxLayout } from "@/components/layout";
+import { TevroxButton } from "@/components/ui/button";
+import { TevroxCard } from "@/components/ui/card";
+
+const CONCERNS = [
+  "Acne-prone",
+  "Sensitive",
+  "Anti-aging",
+  "Hyper-pigmentation",
+  "Oiliness",
+  "Redness",
+  "Dryness",
+  "Large pores",
+] as const;
+
+const STORAGE_KEY = "tevrox_onboarding_concerns";
 
 export default function OnboardingPage() {
-  const [error, setError] = useState("");
-  const { login, user, loading } = useAuth();
   const router = useRouter();
+  const { user, loading } = useAuth();
+  const [selected, setSelected] = useState<string[]>(() => {
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw) as string[];
+    } catch {
+      // ignore corrupted storage
+    }
+    return [];
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // After onboarding, redirect to dashboard
-    if (!loading && user) {
-      const timer = setTimeout(() => {
-        router.replace("/dashboard");
-      }, 2000);
-      return () => clearTimeout(timer);
+    if (!loading && !user) {
+      router.replace("/login");
     }
   }, [loading, user, router]);
 
-  if (loading) return null;
+  const allConcerns = selected.length === CONCERNS.length;
+  const summary = useMemo(() => (selected.length === 0 ? "none yet" : selected.join(", ")), [selected]);
+
+  if (loading || !user) return null;
+
+  const toggle = (concern: string) => {
+    setSelected((current) =>
+      current.includes(concern)
+        ? current.filter((item) => item !== concern)
+        : [...current, concern]
+    );
+    setSaved(false);
+  };
+
+  const save = () => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(selected));
+      setSaved(true);
+      setError(null);
+      window.setTimeout(() => router.replace("/dashboard"), 350);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Could not save your selections");
+    }
+  };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-emerald-50 via-slate-100 to-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-md w-full space-y-8">
+    <TevroxLayout showSidebar={false}>
+      <div className="mx-auto max-w-3xl">
         <div className="text-center">
-          <h1 className="text-5xl font-bold tracking-tighter text-emerald-900">
-            Welcome to Tevrox!
+          <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-emerald-800">
+            <Sparkles size={14} aria-hidden />
+            Skin profile
+          </p>
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+            What does your skin care about?
           </h1>
-          <p className="mt-2 text-emerald-600 font-medium">
-            Let's set up your skin profile
+          <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-600">
+            Pick as many as apply — we use these to personalise product discovery. You can change them anytime.
           </p>
         </div>
 
-        <section className="bg-white rounded-2xl p-8 shadow-xl max-w-2xl mx-auto">
-          <h2 className="text-2xl font-semibold mb-6">Skin Profile</h2>
-
-          <TevroxCard className="p-6">
-            <TevroxPageHeader title="Skin Concerns" subtitle="Select your primary concerns" />
-
-            <div className="space-y-3 mt-4">
-              <TevroxChip>Acne-prone</TevroxChip>
-              <TevroxChip>Sensitive</TevroxChip>
-              <TevroxChip>Anti-aging</TevroxChip>
-              <TevroxChip>Hyper-pigmentation</TevroxChip>
-              <TevroxChip>Oiliness</TevroxChip>
-              <TevroxChip>Redness</TevroxChip>
+        <TevroxCard className="mt-6">
+          <fieldset>
+            <legend className="text-sm font-semibold text-slate-800">Primary concerns</legend>
+            <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Skin concerns">
+              {CONCERNS.map((concern) => {
+                const active = selected.includes(concern);
+                return (
+                  <button
+                    key={concern}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => toggle(concern)}
+                    className={
+                      active
+                        ? "inline-flex items-center gap-1 rounded-full bg-emerald-700 px-3 py-1.5 text-sm font-semibold text-white shadow-sm"
+                        : "inline-flex items-center gap-1 rounded-full border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-emerald-300 hover:text-emerald-800"
+                    }
+                  >
+                    {active && <Check size={14} aria-hidden />}
+                    {concern}
+                  </button>
+                );
+              })}
             </div>
+          </fieldset>
 
-            <TevroxInput
-              placeholder="Add custom concern"
-              className="mt-4 rounded-border"
-            />
-          </TevroxCard>
+          <p className="mt-4 text-xs text-slate-500">
+            Selected: {summary}
+            {allConcerns ? " — everything applies!" : ""}
+          </p>
 
-          <TevroxButton
-            asChild
-            onClick={() => router.replace("/dashboard")}
-            className="w-full rounded bg-emerald-800 p-3 text-white mt-6"
-          >
-            Complete Profile
-          </TevroxButton>
-        </section>
+          {error && (
+            <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800">
+              {error}
+            </p>
+          )}
+
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-neutral-500">
+              Stored on this device; syncing with your account is coming soon.
+            </p>
+            <TevroxButton variant="primary" size="lg" onClick={save}>
+              {saved ? (
+                <>
+                  <Check size={16} aria-hidden />
+                  Saved — opening dashboard…
+                </>
+              ) : (
+                <>
+                  Continue to dashboard
+                  <ChevronRight size={16} aria-hidden />
+                </>
+              )}
+            </TevroxButton>
+          </div>
+        </TevroxCard>
       </div>
-    </main>
+    </TevroxLayout>
   );
 }

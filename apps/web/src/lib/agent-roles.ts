@@ -120,7 +120,7 @@ Always respond as the CTO of Tevrox. Be technical, precise, and focused on engin
   {
     id: 'cto_ai',
     name: 'Dr. Elena Rodriguez',
-    title': 'CTO - AI & ML',
+    title: 'CTO - AI & ML',
     avatar: '🤖',
     color: 'purple-600',
     description: 'AI/ML lead responsible for model development, training, and inference.',

@@ -1,14 +1,17 @@
-import { cn } from "@/lib/utils";
+"use client";
+
 import * as React from "react";
-import { useRef as useReactRef, useEffect } from "react";
-import { useDebounce } from "@/lib/hooks";
+import { useEffect, useRef, useState } from "react";
+import { Search } from "lucide-react";
+
+import { cn } from "@/lib/utils";
 
 export interface TevroxSearchInputProps {
   /** Initial value */
   value?: string;
-  /** On change handler */
+  /** Called with the current text on every keystroke */
   onChange?: (value: string) => void;
-  /** On submit handler */
+  /** Called with the debounced value (or immediately on submit) */
   onSubmit?: (value: string) => void;
   /** Placeholder text */
   placeholder?: string;
@@ -25,55 +28,71 @@ export interface TevroxSearchInputProps {
 }
 
 export function TevroxSearchInput({
-  value,
+  value = "",
   onChange,
   onSubmit,
-  placeholder = "Search products...",
+  placeholder = "Search products…",
   debounceMs = 300,
   disabled = false,
   error,
   label,
   required = false,
 }: TevroxSearchInputProps) {
-  const [inputValue, setInputValue] = React.useState(value ?? "");
-  const inputRef = useReactRef<HTMLInputElement>();
-
-  const debounced = useDebounce(inputValue, debounceMs);
+  const [inputValue, setInputValue] = useState(value);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (onChange) onChange(inputValue);
-  }, [inputValue]);
+    onChange?.(inputValue);
+  }, [inputValue, onChange]);
 
   useEffect(() => {
-    if (onSubmit && debounced.trim()) onSubmit(debounced);
-  }, [debounced]);
+    if (!onSubmit) return;
+    const handle = window.setTimeout(() => {
+      const trimmed = inputValue.trim();
+      if (trimmed) onSubmit(trimmed);
+    }, debounceMs);
+    return () => window.clearTimeout(handle);
+  }, [inputValue, debounceMs, onSubmit]);
+
+  const inputId = label ? `tevrox-search-${label.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}` : "tevrox-search";
 
   return (
     <div className="space-y-1.5">
       {label && (
-        <label className="text-sm font-medium text-neutral-700">
-          {label}{required && <span className="text-danger">*</span>}
+        <label htmlFor={inputId} className="text-sm font-medium text-neutral-700">
+          {label}
+          {required && <span className="text-red-700"> *</span>}
         </label>
       )}
-      <input
-        ref={inputRef}
-        type="text"
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyPress={(e) => e.key === "Enter" && onSubmit?.(e.target.value)}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={cn(
-          "w-full rounded-md border px-3 py-2 text-sm shadow-sm placeholder-neutral-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 cursor-not-allowed",
-          "invalid:border-danger invalid:placeholder-danger-500",
-          error && "border-danger"
-        )}
-        aria-label={label || "Search"}
-        aria-live="polite"
-      />
-      {error && (
-        <p className="text-danger text-sm">{error}</p>
-      )}
+      <div className="relative">
+        <Search
+          size={16}
+          aria-hidden
+          className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+        />
+        <input
+          id={inputId}
+          ref={inputRef}
+          type="search"
+          value={inputValue}
+          onChange={(event) => setInputValue(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && inputValue.trim()) onSubmit?.(inputValue.trim());
+          }}
+          disabled={disabled}
+          required={required}
+          placeholder={placeholder}
+          aria-invalid={error ? true : undefined}
+          aria-label={label ?? "Search"}
+          className={cn(
+            "w-full rounded-md border py-2 pl-9 pr-3 text-sm shadow-sm placeholder-neutral-400",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2",
+            "disabled:cursor-not-allowed disabled:opacity-50",
+            error ? "border-red-600" : "border-neutral-300"
+          )}
+        />
+      </div>
+      {error && <p className="text-sm text-red-700">{error}</p>}
     </div>
   );
 }

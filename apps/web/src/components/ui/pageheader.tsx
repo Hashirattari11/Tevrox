@@ -1,12 +1,12 @@
 import * as React from "react";
-import { ChevronDown as RCChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export interface TevroxPageHeaderProps {
   /** Page title */
   title: string;
   /** Subtitle text */
   subtitle?: string;
-  /** Whether to show actions dropdown */
+  /** Whether to show the actions dropdown trigger */
   hasDropdown?: boolean;
   /** Dropdown trigger onClick */
   onDropdownClick?: () => void;
@@ -22,14 +22,15 @@ export function TevroxPageHeader({
     <header className="mb-6">
       <h1 className="text-2xl font-semibold text-neutral-900">{title}</h1>
       {subtitle && (
-        <p className="text-neutral-400 mt-1">{subtitle}</p>
+        <p className="mt-1 text-neutral-500">{subtitle}</p>
       )}
       {hasDropdown && (
         <div className="mt-3 flex items-center gap-2">
-          <RChevronDown className="h-4 w-4 text-neutral-400" />
+          <ChevronDown className="h-4 w-4 text-neutral-500" aria-hidden />
           <button
+            type="button"
             onClick={onDropdownClick}
-            className="text-xs text-neutral-500 underline hover:text-neutral-600"
+            className="text-xs text-neutral-600 underline underline-offset-2 hover:text-neutral-900"
           >
             More options
           </button>
