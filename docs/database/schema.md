@@ -32,12 +32,12 @@ erDiagram
 | `ingredients` | Unique indexed `normalized_name`, functional category, description, `is_reviewed`, `is_active`. |
 | `ingredient_aliases` | Unique normalized alias mapped to one ingredient; cascades with the ingredient. |
 | `product_ingredients` | Product/ingredient join, unique pair, optional position/concentration/original text. |
-| `analyses` | User, optional product, JSONB `structured_result`, model name. |
+| `analyses` | AI ingredient analysis records: `user_id`, `product_id`, `structured_result` (JSONB), `model_used`, `prompt_version`, `rules_version`, `input_hash`, `status` (completed/fallback/failed), `latency_ms`, `input_tokens`, `output_tokens`, `error_code`. |
 | `routines` | User-owned named morning/evening routine. |
 | `routine_items` | Ordered routine steps, unique routine/position pair. |
 | `nutrition_entries` | User record with timestamp, quantity, optional JSONB nutrients/product. |
 | `admin_audit_logs` | Optional admin actor, action/entity reference, `before_summary`/`after_summary`, JSONB metadata. |
 
-Migration `0003_phase3_catalog` adds `ingredients.is_reviewed`, `ingredients.is_active` and catalogue indexes; on PostgreSQL it also creates the `pg_trgm` extension and trigram GIN indexes for name/search fields. `development_seed` is created by the seed script, not by migrations.
+Migration `0003_phase3_catalog` adds `ingredients.is_reviewed`, `ingredients.is_active` and catalogue indexes; migration `0004_phase4_ai_analysis` adds analysis tracking columns and ingredient safety fields; on PostgreSQL it also creates the `pg_trgm` extension and trigram GIN indexes for name/search fields. `development_seed` is created by the seed script, not by migrations.
 
 User-owned records cascade when their user/routine/product ingredient parent is deleted. Optional catalog references and audit actors use `SET NULL` where retaining the record is useful. See `backend/alembic/versions/` for the exact column definitions; `upgrade head` and `downgrade -1` are tested for the Phase 3 revision.

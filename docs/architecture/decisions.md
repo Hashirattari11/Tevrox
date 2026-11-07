@@ -20,6 +20,22 @@
 - **Phase 3 catalogue API shape:** Endpoints are grouped under `/api/v1/products`, `/api/v1/brands`, `/api/v1/ingredients`, and `/api/v1/admin/*`. Catalogue reads require an authenticated user; catalogue writes are admin-only and audited. OpenAPI is the canonical contract; see `docs/api/products.md`.
 - **Expo SDK alignment:** Mobile uses Expo SDK 58 with its matching React Native and React versions; the `doctor` script checks package compatibility.
 
+- **Rules engine:** Deterministic Python rules engine with versioned rules stored in data files (Python dicts/YAML) so they can be reviewed by non-developers. Each rule has an id, description, severity, and documented source note. The rules engine produces findings that are merged into the AI validation layer. This is a deliberate choice: rules are auditable and explainable, unlike pure LLM output.
+
+- **Prompt versioning:** System prompts live in versioned files under `backend/app/modules/analysis/prompts/`. Every analysis row stores `prompt_version` and `rules_version` so results are reproducible and auditable.
+
+- **No personal data to LLM:** Only product name, ingredients, reference data, rule findings, skin_type, and skin_concerns are sent. Email, name, user id are never included. Prompts and model outputs are not logged in full.
+
+- **Fallback behavior:** If LLM validation fails twice, a rules-only fallback report is returned with `model_used="fallback"` — never a raw 500.
+
+- **Caching:** Analyses are cached by `input_hash` (product ingredients + reference versions + skin profile + prompt_version + rules_version). Cached results don't count toward daily limits.
+
+- **Cost controls:** Per-user daily limit (default 20) returning `ANALYSIS_LIMIT_REACHED`, plus per-minute rate limiting. Admin stats endpoint for cost monitoring.
+
+- **Provider choice:** AnthropicProvider via the official anthropic SDK, selected through `AI_PROVIDER`. `FakeAIProvider` (deterministic, no network) used in tests and dev without an API key.
+
+- **Expert review needed:** All rules and ingredient reference data (function_tags, safety_notes, irritation_potential) must be reviewed by a qualified person before public launch; seed data is marked development-only.
+
 ## Pending decisions / known limitations
 
 - Final product data provider (Open Beauty Facts is provisional).

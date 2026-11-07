@@ -210,6 +210,22 @@ class Ingredient(TimestampMixin, Base):
         default=False, nullable=False, server_default="false"
     )
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False, server_default="true")
+    function_tags: Mapped[list[str] | None] = mapped_column(
+        PortableJSONB, nullable=True, server_default="[]",
+        comment="Educational functional tags (e.g. humectant, fragrance, preservative)",
+    )
+    safety_notes: Mapped[str | None] = mapped_column(
+        Text,
+        comment="Plain educational safety wording; no medical claims",
+    )
+    irritation_potential: Mapped[str] = mapped_column(
+        Enum(
+            "low", "moderate", "high", "unknown", name="irritation_potential"
+        ),
+        default="unknown",
+        nullable=False,
+        server_default="unknown",
+    )
 
     product_ingredients = relationship(
         "ProductIngredient", back_populates="ingredient", cascade="all, delete-orphan"
@@ -262,6 +278,21 @@ class Analysis(TimestampMixin, Base):
     )
     structured_result: Mapped[dict[str, Any]] = mapped_column(PortableJSONB)
     model_used: Mapped[str] = mapped_column(String(120))
+    prompt_version: Mapped[str | None] = mapped_column(String(80))
+    rules_version: Mapped[str | None] = mapped_column(String(80))
+    input_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    status: Mapped[str] = mapped_column(
+        Enum(
+            "completed", "fallback", "failed", name="analysis_status"
+        ),
+        default="completed",
+        nullable=False,
+        server_default="completed",
+    )
+    latency_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    input_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    output_tokens: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    error_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
 
 class Routine(TimestampMixin, Base):
