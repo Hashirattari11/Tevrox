@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -21,6 +22,16 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def http_exception_handler(
         _request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
+        if isinstance(exc.detail, dict):
+            code = str(exc.detail.get("code", "http_error"))
+            message = str(exc.detail.get("message", "Request failed"))
+            details = {
+                key: value
+                for key, value in exc.detail.items()
+                if key not in {"code", "message"}
+            }
+            return error_response(exc.status_code, code, message, details or None)
+
         detail = str(exc.detail)
         code = detail if detail.startswith(("AUTH_", "RATE_LIMITED")) else "http_error"
         message = "Request failed" if detail.startswith("AUTH_") else detail
@@ -30,7 +41,15 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def validation_exception_handler(
         _request: Request, exc: RequestValidationError
     ) -> JSONResponse:
-        return error_response(422, "validation_error", "Request validation failed", exc.errors())
+        errors = exc.errors()
+        for item in errors:
+            item.pop("ctx", None)
+        return error_response(
+            422,
+            "validation_error",
+            "Request validation failed",
+            jsonable_encoder(errors),
+        )
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(_request: Request, exc: Exception) -> JSONResponse:

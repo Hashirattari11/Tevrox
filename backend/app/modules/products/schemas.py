@@ -1,180 +1,204 @@
-from typing import Any, List, Optional
+from __future__ import annotations
+
+import re
+from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+PRODUCT_CATEGORIES = (
+    "cleanser",
+    "toner",
+    "serum",
+    "moisturizer",
+    "sunscreen",
+    "mask",
+    "exfoliant",
+    "eye_care",
+    "treatment",
+    "other",
+)
+VERIFICATION_STATUSES = ("unverified", "verified", "rejected")
 
 
-# ─── Ingredient schemas ──────────────────────────────────────────────────
+def normalize_category(value: str | None) -> str:
+    category = (value or "other").strip().lower().replace(" ", "_").replace("-", "_")
+    if category not in PRODUCT_CATEGORIES:
+        raise ValueError(f"Unsupported product category: {value}")
+    return category
 
-class IngredientResponse(BaseModel):
-    model_config = {"from_attributes": True}
+
+def validate_barcode(value: str | None) -> str | None:
+    if value is None:
+        return None
+    digits = re.sub(r"\D", "", value)
+    if not digits:
+        return None
+    if not (8 <= len(digits) <= 14):
+        raise ValueError("Barcode must contain 8 to 14 digits")
+    return digits
+
+
+class BrandResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
-    normalized_name: str
-    description: Optional[str]
-    reference_notes: Optional[str]
-    category_function: Optional[str]
 
 
-class IngredientCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=300)
-    description: Optional[str] = None
-    reference_notes: Optional[str] = None
-    category_function: Optional[str] = Field(
-        default="other",
-        comment="cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other",
-    )
+class SourceResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-
-class IngredientUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    reference_notes: Optional[str] = None
-    category_function: Optional[str] = Field(
-        default=None,
-        comment="cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other",
-    )
-
-
-class IngredientAliasCreate(BaseModel):
-    alias: str = Field(min_length=1, max_length=300)
-
-
-class IngredientSearchResponse(BaseModel):
-    model_config = {"from_attributes": True}
     id: UUID
     name: str
-    normalized_name: str
 
 
-# ─── Product Ingredient schemas ──────────────────────────────────────────
-
-class ProductIngredientResponse(BaseModel):
-    model_config = {"from_attributes": True}
+class ProductIngredientDetail(BaseModel):
     id: UUID
     product_id: UUID
     ingredient_id: UUID
-    position: Optional[int]
-    concentration: Optional[str]
-    original_text: Optional[str]
+    name: str
+    normalized_name: str
+    position: int | None = None
+    original_text: str | None = None
+    concentration: str | None = None
+    category_function: str | None = None
+    description: str | None = None
 
 
-# ─── Brand schema ───────────────────────────────────────────────────────
-
-class BrandResponse(BaseModel):
-    model_config = {"from_attributes": True}
+class ProductSummary(BaseModel):
     id: UUID
     name: str
-    is_active: bool
-
-
-# ─── Data Source schema ─────────────────────────────────────────────────
-
-class DataSourceResponse(BaseModel):
-    model_config = {"from_attributes": True}
-    id: UUID
-    name: str
-
-
-# ─── Product schemas ─────────────────────────────────────────────────────
-
-class ProductSummaryResponse(BaseModel):
-    model_config = {"from_attributes": True}
-    id: UUID
-    name: str
-    barcode: Optional[str]
-    category: Optional[str]
-    description: Optional[str]
-    image_url: Optional[str]
+    barcode: str | None = None
+    category: str | None = None
+    description: str | None = None
+    image_url: str | None = None
     verification_status: str
-    brand: Optional[BrandResponse]
-    source: Optional[DataSourceResponse]
+    brand: BrandResponse | None = None
+    source: SourceResponse | None = None
     ingredient_count: int = 0
-    is_active: bool
+    is_active: bool = True
 
 
-class ProductDetailResponse(BaseModel):
-    model_config = {"from_attributes": True}
-    id: UUID
-    name: str
-    barcode: Optional[str]
-    category: Optional[str]
-    description: Optional[str]
-    image_url: Optional[str]
-    verification_status: str
-    is_active: bool
-    verified_by: Optional[str]
-    verified_at: Optional[str]
-    created_by: Optional[str]
-    brand: Optional[BrandResponse]
-    source: Optional[DataSourceResponse]
-    ingredients: List[ProductIngredientResponse]
+class ProductDetail(ProductSummary):
+    verified_by: UUID | None = None
+    verified_at: datetime | None = None
+    created_by: UUID | None = None
+    ingredients_raw_text: str | None = None
+    ingredients: list[ProductIngredientDetail] = Field(default_factory=list)
 
 
-class ProductSearchFilters(BaseModel):
-    q: Optional[str] = Field(
-        default=None,
-        min_length=1,
-        max_length=300,
-        json_schema_extra={"description": "Search term for name/brand"},
-    )
-    category: Optional[str] = Field(
-        default=None,
-        max_length=80,
-        json_schema_extra={"description": "Category filter (cleanser, toner, serum, etc.)"},
-    )
-    brand: Optional[str] = Field(
-        default=None,
-        max_length=200,
-        json_schema_extra={"description": "Brand name filter"},
-    )
-    verified_only: bool = Field(
-        default=True, json_schema_extra={"description": "Show only verified products"}
-    )
-    skip: int = Field(default=0, ge=0, json_schema_extra={"description": "Number of records to skip"})
-    limit: int = Field(default=50, ge=1, le=100, json_schema_extra={"description": "Maximum records to return"})
+class ProductListResponse(BaseModel):
+    items: list[ProductSummary]
+    total: int
+    limit: int
+    next_cursor: str | None = None
+    verified_only: bool = True
+
+
+class CategoryCount(BaseModel):
+    category: str
+    count: int
+
+
+class CategoriesResponse(BaseModel):
+    categories: list[CategoryCount]
 
 
 class ProductSubmissionCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=300, description="Product name")
-    category: str = Field(
-        max_length=80,
-        description="Category (cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other)",
-    )
-    barcode: Optional[str] = Field(
-        default=None,
-        max_length=30,
-        description="Barcode (8-14 digits, optional)",
-    )
-    ingredients_raw_text: str = Field(
-        min_length=1,
-        description="Raw ingredient list text from product label",
-    )
+    name: str = Field(min_length=1, max_length=300)
+    brand_name: str | None = Field(default=None, max_length=200)
+    category: str = Field(default="other", max_length=80)
+    barcode: str | None = Field(default=None, max_length=30)
+    ingredients_raw_text: str = Field(min_length=1, max_length=100_000)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str) -> str:
+        return normalize_category(value)
+
+    @field_validator("barcode")
+    @classmethod
+    def validate_barcode(cls, value: str | None) -> str | None:
+        return validate_barcode(value)
+
+    @field_validator("name", "ingredients_raw_text")
+    @classmethod
+    def strip_required(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("Value cannot be blank")
+        return stripped
 
 
 class ProductSubmissionResponse(BaseModel):
-    model_config = {"from_attributes": True}
     id: UUID
     name: str
-    barcode: Optional[str]
+    barcode: str | None = None
     category: str
     verification_status: str
     message: str
 
 
+class AdminProductCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=300)
+    brand_name: str | None = Field(default=None, max_length=200)
+    category: str = Field(default="other", max_length=80)
+    barcode: str | None = Field(default=None, max_length=30)
+    description: str | None = Field(default=None, max_length=5_000)
+    image_url: str | None = Field(default=None, max_length=500)
+    ingredients_raw_text: str | None = Field(default=None, max_length=100_000)
+    verification_status: str = "unverified"
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str) -> str:
+        return normalize_category(value)
+
+    @field_validator("barcode")
+    @classmethod
+    def validate_barcode(cls, value: str | None) -> str | None:
+        return validate_barcode(value)
+
+    @field_validator("verification_status")
+    @classmethod
+    def validate_status(cls, value: str) -> str:
+        if value not in VERIFICATION_STATUSES:
+            raise ValueError("Unsupported verification status")
+        return value
+
+
 class AdminProductUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, max_length=300)
-    category: Optional[str] = Field(default=None, max_length=80)
-    verification_status: str = Field(
-        default="verified",
-        description="'verified' or 'rejected'",
-    )
-    reason: Optional[str] = Field(default=None, max_length=500)
+    name: str | None = Field(default=None, min_length=1, max_length=300)
+    brand_name: str | None = Field(default=None, max_length=200)
+    category: str | None = Field(default=None, max_length=80)
+    barcode: str | None = Field(default=None, max_length=30)
+    description: str | None = Field(default=None, max_length=5_000)
+    image_url: str | None = Field(default=None, max_length=500)
+    ingredients_raw_text: str | None = Field(default=None, max_length=100_000)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str | None) -> str | None:
+        return normalize_category(value) if value is not None else None
+
+    @field_validator("barcode")
+    @classmethod
+    def validate_barcode(cls, value: str | None) -> str | None:
+        return validate_barcode(value)
 
 
-class AdminAuditLogCreate(BaseModel):
-    action: str = Field(min_length=1, max_length=160)
-    entity_type: str = Field(max_length=120)
-    entity_id: UUID
-    before_summary: Optional[str] = Field(default=None, max_length=500)
-    after_summary: Optional[str] = Field(default=None, max_length=500)
+class ProductVerificationRequest(BaseModel):
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class AdminActionResponse(BaseModel):
+    message: str
+    product_id: UUID
+    verification_status: str
+
+
+class ReviewQueueResponse(BaseModel):
+    items: list[ProductSummary]
+    total: int
+    source: str | None = None

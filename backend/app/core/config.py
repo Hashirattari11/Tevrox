@@ -23,8 +23,14 @@ class Settings(BaseSettings):
     environment: str = "development"
     ai_provider_api_key: str = ""
     product_api_key: str = ""
+    open_beauty_facts_base_url: str = "https://world.openbeautyfacts.org"
+    product_provider_timeout_seconds: float = 8.0
+    product_provider_cache_ttl_seconds: int = 3600
+    product_submission_rate_limit: int = 5
+    product_submission_rate_window_seconds: int = 600
+    product_user_agent: str = "Tevrox/0.2.0 (+https://tevrox.example)"
     app_name: str = "Tevrox API"
-    app_version: str = "0.1.0"
+    app_version: str = "0.2.0"
 
     @model_validator(mode="after")
     def validate_jwt_secret(self) -> "Settings":

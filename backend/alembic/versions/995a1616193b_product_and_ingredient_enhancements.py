@@ -5,15 +5,16 @@ Revises: 0002_auth_profiles
 Create Date: 2026-11-04 20:55:20.074200
 """
 
-from typing import Sequence, Union
-from alembic import op
+from collections.abc import Sequence
+
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = '995a1616193b'
-down_revision: Union[str, None] = '0002_auth_profiles'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '0002_auth_profiles'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
@@ -24,7 +25,10 @@ def upgrade() -> None:
             "category",
             sa.String(80),
             server_default="other",
-            comment="cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other",
+            comment=(
+                "cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, "
+                "treatment, other"
+            ),
         ),
     )
     op.add_column(
@@ -58,7 +62,9 @@ def upgrade() -> None:
     # Update index to include barcode
     op.drop_index("ix_products_name", table_name="products")
     op.create_index("ix_products_name", "products", ["name"], unique=False)
-    op.create_index("ix_products_barcode", "products", ["barcode"], unique=False, if_not_exists=True)
+    op.create_index(
+        "ix_products_barcode", "products", ["barcode"], unique=False, if_not_exists=True
+    )
 
     # Add new columns to ingredients table
     op.add_column(
@@ -67,7 +73,10 @@ def upgrade() -> None:
             "category_function",
             sa.String(100),
             server_default="other",
-            comment="cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other",
+            comment=(
+                "cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, "
+                "treatment, other"
+            ),
         ),
     )
 
@@ -93,17 +102,20 @@ def upgrade() -> None:
         sa.Column("original_text", sa.String(500), nullable=True),
     )
 
-    # data_sources seed
+    # data_sources seed. The id column is a UUID, so generate real UUIDs rather
+    # than integers (PostgreSQL rejects integer values for UUID columns).
+    import uuid
+
     op.bulk_insert(
         sa.table(
             "data_sources",
-            sa.Column("id", sa.Integer),
+            sa.Column("id", sa.Uuid),
             sa.Column("name", sa.String(160), nullable=False),
         ),
         [
-            {"id": 1, "name": "internal_admin"},
-            {"id": 2, "name": "open_beauty_facts"},
-            {"id": 3, "name": "user_submitted"},
+            {"id": uuid.uuid4(), "name": "internal_admin"},
+            {"id": uuid.uuid4(), "name": "open_beauty_facts"},
+            {"id": uuid.uuid4(), "name": "user_submitted"},
         ],
     )
 
@@ -134,4 +146,9 @@ def downgrade() -> None:
     op.drop_index("ix_products_name", table_name="products")
 
     # Remove data_sources seed rows
-    op.execute(sa.text("DELETE FROM data_sources WHERE name IN ('internal_admin', 'open_beauty_facts', 'user_submitted')"))
+    op.execute(
+        sa.text(
+            "DELETE FROM data_sources "
+            "WHERE name IN ('internal_admin', 'open_beauty_facts', 'user_submitted')"
+        )
+    )

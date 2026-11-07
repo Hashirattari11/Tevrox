@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.security import create_access_token, generate_refresh_token, hash_refresh_token
-from app.database.models import User, RefreshToken
-from app.database.models import UserProfile
+from app.database.models import RefreshToken, User, UserProfile
 from app.modules.auth.schemas import UserResponse
 
 _hasher = PasswordHasher()

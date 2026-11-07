@@ -1,41 +1,38 @@
 """Business logic for administrative workflows."""
 
-from typing import Any, Optional
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from fastapi import HTTPException
 
-from app.core.deps import get_db, get_current_user
-from app.database.models import Product, User, AdminAuditLog, Ingredient
-from app.database.session import get_db as get_db_session
+from app.database.models import AdminAuditLog, Ingredient, Product, User, UserProfile
 
 
 def get_stats_overview(db_session) -> dict[str, Any]:
     """Get admin dashboard statistics overview."""
-    from sqlalchemy import func
 
     # Total products
-    total_products = db_session.query(Product).filter(Product.is_active == True).count()
+    total_products = db_session.query(Product).filter(Product.is_active.is_(True)).count()
 
     # Verification status counts
     verified_count = db_session.query(Product).filter(
-        Product.is_active == True, Product.verification_status == "verified"
+        Product.is_active.is_(True), Product.verification_status == "verified"
     ).count()
     unverified_count = db_session.query(Product).filter(
-        Product.is_active == True, Product.verification_status == "unverified"
+        Product.is_active.is_(True), Product.verification_status == "unverified"
     ).count()
     rejected_count = db_session.query(Product).filter(
-        Product.is_active == True, Product.verification_status == "rejected"
+        Product.is_active.is_(True), Product.verification_status == "rejected"
     ).count()
 
     # Users
     total_users = db_session.query(User).count()
-    active_users = db_session.query(User).filter(User.is_active == True).count()
+    active_users = db_session.query(User).filter(User.is_active.is_(True)).count()
 
     # Ingredients
     total_ingredients = db_session.query(Ingredient).count()
     unreviewed_ingredients = db_session.query(Ingredient).filter(
-        Ingredient.category_function == "other"
+        Ingredient.is_reviewed.is_(False)
     ).count()
 
     # Recent activity count
@@ -59,15 +56,18 @@ def get_signups_stats(db_session, days: int = 30) -> list[dict[str, Any]]:
     """Get daily signup counts for the specified number of days."""
     from sqlalchemy import func
 
-    start_date = datetime.now(timezone.utc) - timedelta(days=days)
+    start_date = datetime.now(UTC) - timedelta(days=days)
 
     # Query signup data - we'll use a simplified approach
     # In a real implementation, this would track signups with timestamps
+    signup_date = func.date(User.created_at)
     daily_counts = (
-        db_session.query(func.date(User.created_at).label("date"), func.count(User.id).label("count"))
+        db_session.query(
+            signup_date.label("date"), func.count(User.id).label("count")
+        )
         .filter(User.created_at >= start_date)
-        .group_by(func.date(User.created_at))
-        .order_by(func.date(User.created_at))
+        .group_by(signup_date)
+        .order_by(signup_date)
         .all()
     )
 
@@ -76,11 +76,8 @@ def get_signups_stats(db_session, days: int = 30) -> list[dict[str, Any]]:
     date_map = {str(row.date): row.count for row in daily_counts}
 
     for i in range(days):
-        date = (datetime.now(timezone.utc) - timedelta(days=days - 1 + i)).strftime("%Y-%m-%d")
-        result.append({
-            "date": date,
-            "count": date_map.get(date, 0),
-        })
+        date = (datetime.now(UTC) - timedelta(days=days - 1 + i)).strftime("%Y-%m-%d")
+        result.append({"date": date, "count": date_map.get(date, 0)})
 
     return result
 
@@ -93,44 +90,42 @@ def get_users(
     active_only: bool = True,
 ) -> tuple[list[dict[str, Any]], int]:
     """Get users with search and pagination."""
-    from sqlalchemy import select, func, or_
+    from sqlalchemy import func, or_, select
 
-    query = select(User)
-    count_query = select(func.count(User.id))
+    query = select(User).outerjoin(UserProfile, UserProfile.user_id == User.id)
+    count_query = select(func.count(User.id)).outerjoin(
+        UserProfile, UserProfile.user_id == User.id
+    )
 
     if search:
-        query = query.filter(
-            or_(
-                User.email.ilike(f"%{search}%"),
-                User.full_name.ilike(f"%{search}%"),
-            )
+        condition = or_(
+            User.email.ilike(f"%{search}%"),
+            UserProfile.full_name.ilike(f"%{search}%"),
         )
-        count_query = count_query.filter(
-            or_(
-                User.email.ilike(f"%{search}%"),
-                User.full_name.ilike(f"%{search}%"),
-            )
-        )
+        query = query.filter(condition)
+        count_query = count_query.filter(condition)
 
     if active_only:
-        query = query.filter(User.is_active == True)
-        count_query = count_query.filter(User.is_active == True)
+        query = query.filter(User.is_active.is_(True))
+        count_query = count_query.filter(User.is_active.is_(True))
 
     total = db_session.execute(count_query).scalar_one()
 
-    users = db_session.execute(query.offset(skip).limit(limit)).scalars().all()
+    rows = db_session.execute(
+        query.add_columns(UserProfile.full_name).offset(skip).limit(limit)
+    ).all()
 
     return [
         {
             "id": str(user.id),
             "email": user.email,
-            "name": user.full_name or "",
-            "role": "admin" if user.is_active else "user",
+            "name": full_name or "",
+            "role": str(user.role),
             "active": user.is_active,
             "created": user.created_at.isoformat() if user.created_at else None,
             "lastLogin": user.last_login_at.isoformat() if user.last_login_at else None,
         }
-        for user in users
+        for user, full_name in rows
     ], total
 
 
@@ -154,7 +149,7 @@ def deactivate_user(db_session, user_id: str, current_user: User) -> dict[str, A
         action="user_deactivate",
         entity_type="user",
         entity_id=user_id,
-        before_summary=f"User was active",
+        before_summary="User was active",
         admin_user_id=current_user.id,
     )
     db_session.add(audit)
@@ -178,7 +173,7 @@ def reactivate_user(db_session, user_id: str, current_user: User) -> dict[str, A
         action="user_reactivate",
         entity_type="user",
         entity_id=user_id,
-        before_summary=f"User was inactive",
+        before_summary="User was inactive",
         admin_user_id=current_user.id,
     )
     db_session.add(audit)
@@ -198,7 +193,7 @@ def get_audit_logs(
     limit: int = 50,
 ) -> tuple[list[dict[str, Any]], int]:
     """Get audit logs with filters and pagination."""
-    from sqlalchemy import select, func
+    from sqlalchemy import func, select
 
     query = select(AdminAuditLog)
     count_query = select(func.count(AdminAuditLog.id))
@@ -226,7 +221,9 @@ def get_audit_logs(
     total = db_session.execute(count_query).scalar_one()
 
     logs = (
-        db_session.execute(query.order_by(AdminAuditLog.created_at.desc()).offset(skip).limit(limit))
+        db_session.execute(
+            query.order_by(AdminAuditLog.created_at.desc()).offset(skip).limit(limit)
+        )
         .scalars()
         .all()
     )
@@ -253,7 +250,6 @@ def bulk_product_action(
     current_user: User,
 ) -> dict[str, Any]:
     """Bulk verify or reject products."""
-    from sqlalchemy import update
     from app.database.models import AdminAuditLog
 
     if len(product_ids) > 100:
@@ -261,16 +257,20 @@ def bulk_product_action(
 
     # Get the products
     from sqlalchemy import select
-    products = db_session.execute(
-        select(Product).where(Product.id.in_(product_ids))
-    ).scalars().all()
+
+    products = (
+        db_session.execute(select(Product).where(Product.id.in_(product_ids)))
+        .scalars()
+        .all()
+    )
 
     if len(products) != len(product_ids):
         raise HTTPException(404, "Some products not found")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     for product in products:
+        before_status = product.verification_status
         # Update verification status
         if action == "verify":
             product.verification_status = "verified"
@@ -283,8 +283,8 @@ def bulk_product_action(
         audit = AdminAuditLog(
             action=f"product_{action}",
             entity_type="product",
-            entity_id=str(product.id),
-            before_summary=f"status was '{product.verification_status}'",
+            entity_id=product.id,
+            before_summary=f"status was '{before_status}'",
             after_summary=f"status is '{product.verification_status}'",
             admin_user_id=current_user.id,
         )

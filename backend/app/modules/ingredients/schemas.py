@@ -1,77 +1,96 @@
-from typing import Any, Optional
+from __future__ import annotations
+
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+FUNCTIONAL_CATEGORIES = {
+    "humectant",
+    "emollient",
+    "antioxidant",
+    "surfactant",
+    "preservative",
+    "active",
+    "uv_filter",
+    "fragrance",
+    "solvent",
+    "buffer",
+    "other",
+}
 
 
 class IngredientResponse(BaseModel):
-    model_config = {"from_attributes": True}
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     name: str
     normalized_name: str
-    description: Optional[str]
-    reference_notes: Optional[str]
-    category_function: Optional[str]
-    is_active: bool
+    description: str | None = None
+    reference_notes: str | None = None
+    category_function: str | None = None
+    is_reviewed: bool = False
+    is_active: bool = True
+
+
+class IngredientSearchItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    normalized_name: str
 
 
 class IngredientCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=300, json_schema_extra={"comment": "trim, lowercase, collapse whitespace, remove trailing punctuation, strip bracketed percentages, unify unicode, handle 'Aqua / Water' style slashes"})
-    description: Optional[str] = None
-    reference_notes: Optional[str] = None
-    category_function: Optional[str] = Field(
-        default="other",
-        json_schema_extra={"comment": "cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other"},
-    )
+    name: str = Field(min_length=1, max_length=300)
+    description: str | None = None
+    reference_notes: str | None = None
+    category_function: str = Field(default="other", max_length=100)
+    is_reviewed: bool = True
 
-    @field_validator("name")
+    @field_validator("category_function")
     @classmethod
-    def normalize_ingredient_name(cls, value: str) -> str:
-        import re
-
-        value = value.strip().lower()
-        # Remove bracketed percentages like (10%) or [5%]
-        value = re.sub(r"\(.*?\)", "", value)
-        value = re.sub(r"\[.*?\]", "", value)
-        # Collapse whitespace
-        value = re.sub(r"\s+", " ", value)
-        return value.strip()
+    def validate_category(cls, value: str) -> str:
+        if value not in FUNCTIONAL_CATEGORIES:
+            raise ValueError(f"Unsupported ingredient function: {value}")
+        return value
 
 
 class IngredientUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    reference_notes: Optional[str] = None
-    category_function: Optional[str] = Field(
-        default=None,
-        comment="cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other",
-    )
+    name: str | None = Field(default=None, min_length=1, max_length=300)
+    description: str | None = None
+    reference_notes: str | None = None
+    category_function: str | None = Field(default=None, max_length=100)
+    is_reviewed: bool | None = None
+    is_active: bool | None = None
+
+    @field_validator("category_function")
+    @classmethod
+    def validate_category(cls, value: str | None) -> str | None:
+        if value is not None and value not in FUNCTIONAL_CATEGORIES:
+            raise ValueError(f"Unsupported ingredient function: {value}")
+        return value
 
 
 class IngredientAliasCreate(BaseModel):
+    ingredient_id: UUID
     alias: str = Field(min_length=1, max_length=300)
 
-    @field_validator("alias")
-    @classmethod
-    def normalize_alias(cls, value: str) -> str:
-        import re
-        value = value.strip().lower()
-        value = re.sub(r"\s+", " ", value)
-        return value.strip()
+
+class IngredientMergeRequest(BaseModel):
+    source_id: UUID
+    target_id: UUID
 
 
-class IngredientSearchResponse(BaseModel):
-    model_config = {"from_attributes": True}
-    id: UUID
-    name: str
-    normalized_name: str
+class IngredientMergeResponse(BaseModel):
+    message: str
+    source_id: UUID
+    target_id: UUID
+    moved_product_ingredients: int
+    dropped_duplicate_links: int
+    moved_aliases: int
 
 
-class ProductIngredientResponse(BaseModel):
-    model_config = {"from_attributes": True}
-    id: UUID
-    product_id: UUID
-    ingredient_id: UUID
-    position: Optional[int]
-    concentration: Optional[str]
-    original_text: Optional[str]
+class IngredientAdminListResponse(BaseModel):
+    items: list[IngredientResponse]
+    total: int
+    unreviewed_only: bool

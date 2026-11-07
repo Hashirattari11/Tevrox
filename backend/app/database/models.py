@@ -14,9 +14,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     Uuid,
-    false,
     func,
-    true,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -145,7 +143,11 @@ class Brand(TimestampMixin, Base):
 
 class Product(TimestampMixin, Base):
     __tablename__ = "products"
-    __table_args__ = (Index("ix_products_name", "name"), Index("ix_products_barcode", "barcode"))
+    __table_args__ = (
+        Index("ix_products_name", "name"),
+        Index("ix_products_category", "category"),
+        Index("ix_products_is_active", "is_active"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     brand_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -159,7 +161,10 @@ class Product(TimestampMixin, Base):
     category: Mapped[str | None] = mapped_column(
         String(80),
         server_default="other",
-        comment="cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other",
+        comment=(
+            "cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, "
+            "treatment, other"
+        ),
     )
     description: Mapped[str | None] = mapped_column(Text)
     image_url: Mapped[str | None] = mapped_column(String(500))
@@ -186,6 +191,7 @@ class Product(TimestampMixin, Base):
 
 class Ingredient(TimestampMixin, Base):
     __tablename__ = "ingredients"
+    __table_args__ = (Index("ix_ingredients_is_reviewed", "is_reviewed"),)
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(300))
@@ -195,11 +201,21 @@ class Ingredient(TimestampMixin, Base):
     category_function: Mapped[str | None] = mapped_column(
         String(100),
         server_default="other",
-        comment="cleanser, toner, serum, moisturizer, sunscreen, mask, exfoliant, eye_care, treatment, other",
+        comment=(
+            "Functional category such as humectant, emollient, antioxidant, surfactant, "
+            "preservative, active, uv_filter, fragrance, solvent, buffer, other"
+        ),
     )
+    is_reviewed: Mapped[bool] = mapped_column(
+        default=False, nullable=False, server_default="false"
+    )
+    is_active: Mapped[bool] = mapped_column(default=True, nullable=False, server_default="true")
 
     product_ingredients = relationship(
         "ProductIngredient", back_populates="ingredient", cascade="all, delete-orphan"
+    )
+    aliases = relationship(
+        "IngredientAlias", back_populates="ingredient", cascade="all, delete-orphan"
     )
 
 
@@ -211,6 +227,8 @@ class IngredientAlias(Base):
         Uuid, ForeignKey("ingredients.id", ondelete="CASCADE"), index=True
     )
     alias_normalized: Mapped[str] = mapped_column(String(300), unique=True, index=True)
+
+    ingredient = relationship("Ingredient", back_populates="aliases")
 
 
 class ProductIngredient(TimestampMixin, Base):

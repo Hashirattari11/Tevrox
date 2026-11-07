@@ -1,153 +1,90 @@
+from __future__ import annotations
+
+from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from typing import List, Optional
 
-from app.core.deps import get_db
-from app.database.models import Ingredient, IngredientAlias
-from app.modules.ingredients.service import (
-    normalize_ingredient_name,
-    parse_ingredient_list,
-    resolve_ingredient,
-)
+from app.core.deps import get_current_user
+from app.database.models import Ingredient, IngredientAlias, User
+from app.database.session import get_db
 from app.modules.ingredients.schemas import (
     IngredientResponse,
-    IngredientCreate,
-    IngredientUpdate,
-    IngredientAliasCreate,
-    IngredientSearchResponse,
-    ProductIngredientResponse,
+    IngredientSearchItem,
 )
+from app.modules.ingredients.service import normalize_ingredient_name
 
 router = APIRouter(prefix="/ingredients", tags=["ingredients"])
+Db = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.get("/", response_model=List[IngredientSearchResponse])
+@router.get("/search", response_model=list[IngredientSearchItem])
+def search_ingredients(
+    db: Db,
+    _user: CurrentUser,
+    q: str = Query(..., min_length=1, max_length=300),
+    limit: int = Query(20, ge=1, le=100),
+) -> list[IngredientSearchItem]:
+    """Search ingredients by normalized name or alias."""
+    normalized = normalize_ingredient_name(q)
+    pattern = f"%{normalized}%"
+    stmt = (
+        select(Ingredient)
+        .outerjoin(IngredientAlias, IngredientAlias.ingredient_id == Ingredient.id)
+        .where(
+            Ingredient.is_active.is_(True),
+            or_(
+                Ingredient.normalized_name.ilike(pattern),
+                IngredientAlias.alias_normalized.ilike(pattern),
+            ),
+        )
+        .distinct()
+        .order_by(Ingredient.name.asc())
+        .limit(limit)
+    )
+    return [
+        IngredientSearchItem.model_validate(item) for item in db.scalars(stmt).all()
+    ]
+
+
+@router.get("", response_model=list[IngredientSearchItem])
 def list_ingredients(
-    q: Optional[str] = Query(None, min_length=1),
-    db: Session = Depends(get_db),
-) -> list:
-    """List ingredients, optionally search by name."""
-    query = db.query(Ingredient)
+    db: Db,
+    _user: CurrentUser,
+    q: str | None = Query(None, min_length=1, max_length=300),
+    limit: int = Query(50, ge=1, le=100),
+) -> list[IngredientSearchItem]:
+    """List active ingredients, optionally filtered by a search term."""
+    stmt = select(Ingredient).where(Ingredient.is_active.is_(True))
     if q:
         normalized = normalize_ingredient_name(q)
-        query = query.filter(
-            Ingredient.normalized_name.ilike(f"%{normalized}%")
-        )
-        # Also check aliases
-        query = query.outerjoin(IngredientAlias).filter(
-            or_(
-                Ingredient.normalized_name.ilike(f"%{normalized}%"),
-                IngredientAlias.alias_normalized.ilike(f"%{normalized}%"),
+        stmt = (
+            stmt.outerjoin(IngredientAlias, IngredientAlias.ingredient_id == Ingredient.id)
+            .where(
+                or_(
+                    Ingredient.normalized_name.ilike(f"%{normalized}%"),
+                    IngredientAlias.alias_normalized.ilike(f"%{normalized}%"),
+                )
             )
+            .distinct()
         )
-    ingredients = query.distinct().all()
+    stmt = stmt.order_by(Ingredient.name.asc()).limit(limit)
     return [
-        IngredientSearchResponse(
-            id=ing.id,
-            name=ing.name,
-            normalized_name=ing.normalized_name,
-        )
-        for ing in ingredients
+        IngredientSearchItem.model_validate(item) for item in db.scalars(stmt).all()
     ]
 
 
 @router.get("/{ingredient_id}", response_model=IngredientResponse)
 def get_ingredient(
     ingredient_id: UUID,
-    db: Session = Depends(get_db),
-) -> dict:
-    """Get a single ingredient by ID."""
-    ing = db.get(Ingredient, ingredient_id)
-    if ing is None:
+    db: Db,
+    _user: CurrentUser,
+) -> IngredientResponse:
+    """Get a single ingredient by id."""
+    ingredient = db.get(Ingredient, ingredient_id)
+    if ingredient is None:
         raise HTTPException(404, "Ingredient not found")
-    return IngredientResponse(
-        id=ing.id,
-        name=ing.name,
-        normalized_name=ing.normalized_name,
-        description=ing.description,
-        reference_notes=ing.reference_notes,
-        category_function=ing.category_function,
-        is_active=ing.is_active,
-    )
-
-
-@router.post("/", response_model=IngredientResponse, status_code=201)
-def create_ingredient(
-    payload: IngredientCreate,
-    db: Session = Depends(get_db),
-) -> dict:
-    """Create a new ingredient with normalized name."""
-    normalized = normalize_ingredient_name(payload.name)
-
-    # Check if ingredient already exists by normalized name
-    existing = db.query(Ingredient).filter(Ingredient.normalized_name == normalized).first()
-    if existing:
-        raise HTTPException(409, "Ingredient already exists")
-
-    ingredient = Ingredient(
-        name=payload.name,
-        normalized_name=normalized,
-        description=payload.description,
-        reference_notes=payload.reference_notes,
-        category_function=payload.category_function or "other",
-    )
-    db.add(ingredient)
-    db.commit()
-    db.refresh(ingredient)
-
-    return IngredientResponse(
-        id=ingredient.id,
-        name=ingredient.name,
-        normalized_name=ingredient.normalized_name,
-        description=ingredient.description,
-        reference_notes=ingredient.reference_notes,
-        category_function=ingredient.category_function,
-        is_active=ingredient.is_active,
-    )
-
-
-@router.post("/alias", status_code=201)
-def create_alias(
-    payload: IngredientAliasCreate,
-    db: Session = Depends(get_db),
-) -> dict:
-    """Create an alias for an existing ingredient."""
-    normalized = normalize_ingredient_name(payload.alias)
-
-    # Check if alias already exists
-    existing = db.query(IngredientAlias).filter(IngredientAlias.alias_normalized == normalized).first()
-    if existing:
-        raise HTTPException(409, "Alias already exists")
-
-    from app.database.models import Ingredient as _Ingredient
-
-    # Link to an ingredient - for now, we need the ingredient_id
-    # In production, this would be specified; for now, just store the alias
-    # with a placeholder and let admins associate it later
-    alias = IngredientAlias(
-        ingredient_id=None,  # Will be associated later
-        alias_normalized=normalized,
-    )
-    db.add(alias)
-    db.commit()
-
-    return {"alias": normalized, "note": "Associate with ingredient ID later"}
-
-
-@router.post("/parse", status_code=200)
-def parse_ingredient_list_endpoint(
-    raw_text: str = Query(..., min_length=1),
-    db: Session = Depends(get_db),
-) -> dict:
-    """Parse a raw ingredient list string into ordered entries."""
-    entries = parse_ingredient_list(raw_text)
-    return {"entries": entries, "count": len(entries)}
-
-
-def or_(**conditions: Any) -> Any:
-    """Simple OR condition helper - import from sqlalchemy in real usage."""
-    from sqlalchemy import or_ as _or
-    return _or(*conditions.values())
+    return IngredientResponse.model_validate(ingredient)

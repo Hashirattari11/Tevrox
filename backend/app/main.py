@@ -4,7 +4,6 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from pymongo import AsyncMongoClient
 from sqlalchemy import text
@@ -15,15 +14,17 @@ from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging
 from app.database.mongodb import MongoStatus, get_mongodb_status
 from app.database.session import get_db
-from app.modules.auth.router import router as auth_router
-from app.modules.users.router import router as users_router
-from app.modules.products.router import router as products_router
-from app.modules.ingredients.router import router as ingredients_router
-from app.modules.analysis.router import router as analysis_router
-from app.modules.conflicts.router import router as conflicts_router
-from app.modules.routines.router import router as routines_router
-from app.modules.nutrition.router import router as nutrition_router
+from app.modules.admin.catalog_router import router as admin_catalog_router
 from app.modules.admin.router import router as admin_router
+from app.modules.analysis.router import router as analysis_router
+from app.modules.auth.router import router as auth_router
+from app.modules.conflicts.router import router as conflicts_router
+from app.modules.ingredients.router import router as ingredients_router
+from app.modules.nutrition.router import router as nutrition_router
+from app.modules.products.router import brands_router
+from app.modules.products.router import router as products_router
+from app.modules.routines.router import router as routines_router
+from app.modules.users.router import router as users_router
 
 configure_logging()
 settings = get_settings()
@@ -88,11 +89,15 @@ def health(
 api_v1.include_router(auth_router, tags=["auth"])
 api_v1.include_router(users_router, tags=["users"])
 api_v1.include_router(products_router, tags=["products"])
+api_v1.include_router(brands_router, tags=["products"])
 api_v1.include_router(ingredients_router, tags=["ingredients"])
 api_v1.include_router(analysis_router, tags=["analysis"])
 api_v1.include_router(conflicts_router, tags=["conflicts"])
 api_v1.include_router(routines_router, tags=["routines"])
 api_v1.include_router(nutrition_router, tags=["nutrition"])
+# Register the existing admin routes before the catalogue admin routes so
+# static paths such as /admin/products/bulk-verify keep matching first.
 api_v1.include_router(admin_router, tags=["admin"])
+api_v1.include_router(admin_catalog_router, tags=["admin"])
 
 app.include_router(api_v1)

@@ -8,7 +8,11 @@ from app.core.config import get_settings
 # Build engine; connect_args only for non-SQLite drivers
 _database_url = get_settings().database_url
 _sqlite_prefix = "sqlite"
-connect_args = {"check_same_thread": False} if _database_url.startswith(_sqlite_prefix) else {"connect_timeout": 5}
+connect_args = (
+    {"check_same_thread": False}
+    if _database_url.startswith(_sqlite_prefix)
+    else {"connect_timeout": 5}
+)
 
 engine = create_engine(
     _database_url,
