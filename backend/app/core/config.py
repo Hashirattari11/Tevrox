@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     ai_timeout_seconds: float = 30.0
     analysis_daily_limit: int = 20
     openrouter_api_key: str = ""
-    openrouter_model: str = "meta-llama/llama-3.1-8b-instruct:free"
+    openrouter_model: str = "google/gemma-4-31b-it:free"
     openrouter_timeout_seconds: float = 30.0
     product_api_key: str = ""
     open_beauty_facts_base_url: str = "https://world.openbeautyfacts.org"

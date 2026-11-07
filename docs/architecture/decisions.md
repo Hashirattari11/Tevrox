@@ -32,7 +32,13 @@
 
 - **Cost controls:** Per-user daily limit (default 20) returning `ANALYSIS_LIMIT_REACHED`, plus per-minute rate limiting. Admin stats endpoint for cost monitoring.
 
-- **Provider choice:** AnthropicProvider via the official anthropic SDK, selected through `AI_PROVIDER`. `FakeAIProvider` (deterministic, no network) used in tests and dev without an API key.
+- **Provider choice:** `AI_PROVIDER` selects the provider. `FakeAIProvider`
+  (deterministic, no network) is the default for tests and local dev without a
+  key. `AnthropicProvider` uses the official anthropic SDK. `OpenRouterProvider`
+  calls OpenRouter's OpenAI-compatible chat-completions endpoint with a **free**
+  model (`google/gemma-4-31b-it:free` by default, verified against OpenRouter's
+  live model list). Free models still need `OPENROUTER_API_KEY`; the provider
+  tolerates JSON wrapped in markdown fences and walks a retry/backoff loop.
 
 - **Expert review needed:** All rules and ingredient reference data (function_tags, safety_notes, irritation_potential) must be reviewed by a qualified person before public launch; seed data is marked development-only.
 

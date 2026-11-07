@@ -52,6 +52,37 @@ class ProviderInvalidResponseError(ProviderError):
     """The AI provider returned a response that could not be parsed."""
 
 
+def parse_json_content(content: str) -> dict[str, Any]:
+    """Parse a JSON object from a model response, tolerating markdown fences.
+
+    Some free models wrap JSON in ```json ... ``` blocks or add a short prefix
+    or suffix despite instructions. This extracts the JSON object instead of
+    failing the whole analysis.
+    """
+    text = content.strip()
+
+    if text.startswith("```"):
+        lines = text.splitlines()
+        if lines and lines[0].startswith("```"):
+            lines = lines[1:]
+        if lines and lines[-1].strip() == "```":
+            lines = lines[:-1]
+        text = "\n".join(lines).strip()
+
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end <= start:
+            raise
+        parsed = json.loads(text[start : end + 1])
+
+    if not isinstance(parsed, dict):
+        raise ValueError("Model response is not a JSON object")
+    return parsed
+
+
 class ProviderResult:
     """Structured result from an AI provider call."""
 
@@ -161,7 +192,7 @@ class AnthropicProvider(AIProvider):
                     if block.type == "text":
                         content += block.text
 
-                data = json.loads(content)
+                data = parse_json_content(content)
 
                 usage = getattr(response, "usage", None)
                 input_tokens = getattr(usage, "input_tokens", None) if usage else None
@@ -231,7 +262,7 @@ class AnthropicProvider(AIProvider):
 class OpenRouterProvider(AIProvider):
     """OpenRouter provider using the OpenRouter chat completions API.
 
-    Supports free models such as ``meta-llama/llama-3.1-8b-instruct:free``.
+    Supports free models such as ``google/gemma-4-31b-it:free``.
     Configured via ``OPENROUTER_API_KEY`` and ``OPENROUTER_MODEL`` env vars.
     """
 
@@ -273,12 +304,10 @@ class OpenRouterProvider(AIProvider):
 
         last_error: Exception | None = None
         for attempt in range(3):
+            client = self._client or httpx.AsyncClient(timeout=self.timeout_seconds)
+            owns_client = self._client is None
             try:
-                if self._client is not None:
-                    client = self._client
-                else:
-                    client = httpx.AsyncClient(timeout=self.timeout_seconds)
-
+                start = time.monotonic()
                 response = await client.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers={
@@ -328,15 +357,16 @@ class OpenRouterProvider(AIProvider):
                 else:
                     data = response.json()
                     content = data["choices"][0]["message"]["content"]
-                    parsed = json.loads(content)
+                    parsed = parse_json_content(content)
 
                     usage = data.get("usage", {})
+                    returned_model = data.get("model") or self.model
                     return ProviderResult(
                         data=parsed,
-                        model=self.model,
+                        model=returned_model,
                         input_tokens=usage.get("prompt_tokens"),
                         output_tokens=usage.get("completion_tokens"),
-                        latency_ms=0,
+                        latency_ms=int((time.monotonic() - start) * 1000),
                     )
 
             except (httpx.TimeoutException, httpx.NetworkError):
@@ -357,10 +387,11 @@ class OpenRouterProvider(AIProvider):
                     "OpenRouter request failed.",
                 )
                 logger.warning("OpenRouter request error: %s", exc)
+            finally:
+                if owns_client:
+                    await client.aclose()
 
             if attempt < 2:
-                if self._client is None:
-                    await client.aclose()
                 await asyncio.sleep(0.5 * (attempt + 1))
 
         assert last_error is not None

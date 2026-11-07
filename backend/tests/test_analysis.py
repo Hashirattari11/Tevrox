@@ -585,3 +585,68 @@ def test_analysis_schemas_validate():
     # Banned phrase check
     assert "cure" in BANNED_PHRASES
     assert "clinically proven" in BANNED_PHRASES
+
+
+def test_parse_json_content_handles_fences_and_prefixes():
+    """Free models often wrap JSON in markdown; parsing must tolerate it."""
+    from app.integrations.ai_provider import parse_json_content
+
+    assert parse_json_content('{"a": 1}') == {"a": 1}
+    assert parse_json_content('```json\n{"a": 1}\n```') == {"a": 1}
+    assert parse_json_content('```\n{"a": 1}\n```') == {"a": 1}
+    assert parse_json_content('Here you go: {"a": 1} Hope that helps.') == {"a": 1}
+
+    import pytest
+
+    with pytest.raises(ValueError):
+        parse_json_content("[1, 2, 3]")
+
+
+def test_openrouter_provider_parses_fenced_response():
+    """OpenRouter provider accepts fenced JSON and reports model/latency."""
+    import asyncio
+
+    import httpx
+
+    from app.integrations.ai_provider import OpenRouterProvider
+
+    captured: dict[str, Any] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["auth"] = request.headers.get("authorization")
+        body = json.loads(request.content)
+        captured["model"] = body["model"]
+        return httpx.Response(
+            200,
+            json={
+                "model": body["model"],
+                "choices": [
+                    {"message": {"content": '```json\n{"summary": "ok"}\n```'}}
+                ],
+                "usage": {"prompt_tokens": 11, "completion_tokens": 4},
+            },
+        )
+
+    async def run() -> Any:
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            provider = OpenRouterProvider(
+                api_key="test-key",
+                model="google/gemma-4-31b-it:free",
+                client=client,
+            )
+            return await provider.generate_structured(
+                system_prompt="system",
+                user_payload={"ingredients": []},
+                response_schema=AnalysisResult,
+            )
+
+    result = asyncio.run(run())
+
+    assert result.data == {"summary": "ok"}
+    assert result.model == "google/gemma-4-31b-it:free"
+    assert result.input_tokens == 11
+    assert result.output_tokens == 4
+    assert result.latency_ms is not None and result.latency_ms >= 0
+    assert captured["model"] == "google/gemma-4-31b-it:free"
+    assert captured["auth"] == "Bearer test-key"

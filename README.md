@@ -63,11 +63,14 @@ The mobile client can reach the host as `10.0.2.2` on the Android emulator or `l
 | `REFRESH_TOKEN_EXPIRE_DAYS` | backend | Refresh-token lifetime; default 30 |
 | `ALLOWED_ORIGINS` | backend | Comma-separated browser origins |
 | `ENVIRONMENT` | backend | Environment name (development by default) |
-| `AI_PROVIDER_API_KEY` | backend | Empty until an AI provider is selected |
-| `AI_PROVIDER` | backend | `fake` (default) or `anthropic` |
+| `AI_PROVIDER_API_KEY` | backend | API key for the selected AI provider (Anthropic) |
+| `AI_PROVIDER` | backend | `fake` (default), `anthropic`, or `openrouter` |
 | `AI_MODEL` | backend | Model name, e.g. `claude-3-haiku-20240307` |
 | `AI_MAX_TOKENS` | backend | Max tokens per analysis; default 1000 |
 | `AI_TIMEOUT_SECONDS` | backend | Provider timeout; default 30.0 |
+| `OPENROUTER_API_KEY` | backend | OpenRouter API key (only for `AI_PROVIDER=openrouter`) |
+| `OPENROUTER_MODEL` | backend | Free OpenRouter model; default `google/gemma-4-31b-it:free` |
+| `OPENROUTER_TIMEOUT_SECONDS` | backend | OpenRouter request timeout; default 30.0 |
 | `ANALYSIS_DAILY_LIMIT` | backend | Per-user daily analysis limit; default 20 |
 | `PRODUCT_API_KEY` | backend | Reserved for future providers; the default Open Beauty Facts integration needs no key |
 | `OPEN_BEAUTY_FACTS_BASE_URL` | backend | Base URL for the provisional Open Beauty Facts provider |
@@ -116,6 +119,16 @@ Run with Anthropic (requires API key):
 # AI_PROVIDER=anthropic
 # AI_PROVIDER_API_KEY=sk-ant-...
 # AI_MODEL=claude-3-haiku-20240307
+uv run --project backend uvicorn app.main:app --app-dir backend --reload
+```
+
+Run with OpenRouter (free model, requires a free OpenRouter key):
+
+```sh
+# Set in .env:
+# AI_PROVIDER=openrouter
+# OPENROUTER_API_KEY=sk-or-v1-...
+# OPENROUTER_MODEL=google/gemma-4-31b-it:free
 uv run --project backend uvicorn app.main:app --app-dir backend --reload
 ```
 

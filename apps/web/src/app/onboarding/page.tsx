@@ -24,17 +24,23 @@ const STORAGE_KEY = "tevrox_onboarding_concerns";
 export default function OnboardingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [selected, setSelected] = useState<string[]>(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) return JSON.parse(raw) as string[];
-    } catch {
-      // ignore corrupted storage
-    }
-    return [];
-  });
+  const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    // Read stored concerns after mount so server and client render the same
+    // initial tree (avoids hydration mismatches).
+    const handle = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        if (raw) setSelected(JSON.parse(raw) as string[]);
+      } catch {
+        // ignore corrupted storage
+      }
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, []);
 
   useEffect(() => {
     if (!loading && !user) {

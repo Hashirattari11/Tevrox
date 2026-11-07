@@ -100,6 +100,10 @@ providers. Current implementations:
 - `FakeAIProvider` (default, `AI_PROVIDER=fake`) – deterministic, no network.
 - `AnthropicProvider` (`AI_PROVIDER=anthropic`) – official Anthropic SDK, with
   retries and backoff for 429/5xx.
+- `OpenRouterProvider` (`AI_PROVIDER=openrouter`) – OpenAI-compatible
+  chat-completions call to OpenRouter with a free model
+  (`google/gemma-4-31b-it:free` by default). Free models still require an
+  `OPENROUTER_API_KEY`; JSON wrapped in markdown fences is tolerated.
 
 Set `AI_PROVIDER=anthropic` and `AI_PROVIDER_API_KEY` to use the real provider.
 

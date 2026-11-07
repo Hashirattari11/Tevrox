@@ -4,6 +4,7 @@ import React, {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -77,11 +78,23 @@ async function parseTokenResponse(response: Response, fallback: string): Promise
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<TevroxUser | null>(() => readStoredUser());
-  const [accessToken, setAccessToken] = useState<string | null>(() =>
-    readStoredAccessToken()
-  );
-  const [loading] = useState(false);
+  // The server and the first client render must match. Reading localStorage
+  // during the initial render (e.g. in a useState initializer) makes the
+  // client tree differ from the server HTML and causes hydration errors.
+  // Start from the same "no session" state on both sides and hydrate after
+  // mount instead.
+  const [user, setUser] = useState<TevroxUser | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      setUser(readStoredUser());
+      setAccessToken(readStoredAccessToken());
+      setLoading(false);
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, []);
 
   const persistSession = useCallback((data: TokenResponse) => {
     window.localStorage.setItem(KEYS.accessToken, data.access_token);
