@@ -990,30 +990,250 @@
         }
       }
     },
-    "/api/v1/analysis/": {
+    "/api/v1/analysis": {
+      "post": {
+        "tags": [
+          "analysis",
+          "analysis"
+        ],
+        "summary": "Create Analysis",
+        "description": "Run ingredient analysis for a product.",
+        "operationId": "create_analysis_api_v1_analysis_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "force_refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Force a fresh analysis (rate-limited)",
+              "default": false,
+              "title": "Force Refresh"
+            },
+            "description": "Force a fresh analysis (rate-limited)"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": [
           "analysis",
           "analysis"
         ],
-        "summary": "Analysis Placeholder",
-        "operationId": "analysis_placeholder_api_v1_analysis__get",
+        "summary": "List Analyses",
+        "description": "Current user's analysis history, newest first.",
+        "operationId": "list_analyses_api_v1_analysis_get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
                   "type": "object",
-                  "title": "Response Analysis Placeholder Api V1 Analysis  Get"
+                  "additionalProperties": true,
+                  "title": "Response List Analyses Api V1 Analysis Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
           }
         }
+      }
+    },
+    "/api/v1/analysis/{analysis_id}": {
+      "get": {
+        "tags": [
+          "analysis",
+          "analysis"
+        ],
+        "summary": "Get Analysis",
+        "description": "Get a single analysis (owner only).",
+        "operationId": "get_analysis_api_v1_analysis__analysis_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "analysis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Analysis Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "analysis",
+          "analysis"
+        ],
+        "summary": "Delete Analysis",
+        "description": "Delete an analysis owned by the current user.",
+        "operationId": "delete_analysis_api_v1_analysis__analysis_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "analysis_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Analysis Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analysis/admin/stats": {
+      "get": {
+        "tags": [
+          "analysis",
+          "analysis"
+        ],
+        "summary": "Admin Analysis Stats",
+        "description": "Admin-only: analysis cost/usage stats.",
+        "operationId": "admin_analysis_stats_api_v1_analysis_admin_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Admin Analysis Stats Api V1 Analysis Admin Stats Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
       }
     },
     "/api/v1/conflicts/": {
@@ -2903,6 +3123,191 @@
         ],
         "title": "AdminUsersListResponse"
       },
+      "AnalysisCreate": {
+        "properties": {
+          "product_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Product Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "product_id"
+        ],
+        "title": "AnalysisCreate",
+        "description": "Request to create a new analysis."
+      },
+      "AnalysisResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "model_used": {
+            "type": "string",
+            "title": "Model Used"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "rules_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rules Version"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AnalysisResult"
+          },
+          "product_unverified": {
+            "type": "boolean",
+            "title": "Product Unverified",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "model_used",
+          "created_at",
+          "result"
+        ],
+        "title": "AnalysisResponse",
+        "description": "Response returned by analysis endpoints."
+      },
+      "AnalysisResult": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "maxLength": 600,
+            "title": "Summary"
+          },
+          "suitability_overview": {
+            "type": "string",
+            "maxLength": 2000,
+            "title": "Suitability Overview"
+          },
+          "key_ingredients": {
+            "items": {
+              "$ref": "#/components/schemas/KeyIngredient"
+            },
+            "type": "array",
+            "title": "Key Ingredients"
+          },
+          "cautions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cautions"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "confidence": {
+            "type": "string",
+            "title": "Confidence",
+            "default": "medium"
+          },
+          "confidence_reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Confidence Reason",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "summary",
+          "suitability_overview"
+        ],
+        "title": "AnalysisResult",
+        "description": "Strict schema for AI-generated ingredient analysis output."
+      },
       "BrandResponse": {
         "properties": {
           "id": {
@@ -3342,6 +3747,45 @@
         },
         "type": "object",
         "title": "IngredientUpdate"
+      },
+      "KeyIngredient": {
+        "properties": {
+          "ingredient_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Ingredient Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 300,
+            "title": "Name"
+          },
+          "role": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Role"
+          },
+          "explanation": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Explanation"
+          },
+          "caution_level": {
+            "type": "string",
+            "title": "Caution Level",
+            "description": "info | note | caution",
+            "default": "info"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ingredient_id",
+          "name",
+          "role",
+          "explanation"
+        ],
+        "title": "KeyIngredient",
+        "description": "A single ingredient in the analysis result."
       },
       "LoginRequest": {
         "properties": {

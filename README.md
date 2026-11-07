@@ -64,6 +64,11 @@ The mobile client can reach the host as `10.0.2.2` on the Android emulator or `l
 | `ALLOWED_ORIGINS` | backend | Comma-separated browser origins |
 | `ENVIRONMENT` | backend | Environment name (development by default) |
 | `AI_PROVIDER_API_KEY` | backend | Empty until an AI provider is selected |
+| `AI_PROVIDER` | backend | `fake` (default) or `anthropic` |
+| `AI_MODEL` | backend | Model name, e.g. `claude-3-haiku-20240307` |
+| `AI_MAX_TOKENS` | backend | Max tokens per analysis; default 1000 |
+| `AI_TIMEOUT_SECONDS` | backend | Provider timeout; default 30.0 |
+| `ANALYSIS_DAILY_LIMIT` | backend | Per-user daily analysis limit; default 20 |
 | `PRODUCT_API_KEY` | backend | Reserved for future providers; the default Open Beauty Facts integration needs no key |
 | `OPEN_BEAUTY_FACTS_BASE_URL` | backend | Base URL for the provisional Open Beauty Facts provider |
 | `PRODUCT_PROVIDER_TIMEOUT_SECONDS` | backend | External provider timeout; default 8.0 |
@@ -94,6 +99,26 @@ uv run --project backend alembic -c backend/alembic.ini downgrade base
 uv run --project backend ruff check backend
 ```
 
+Run with the fake AI provider (default, no API key needed):
+
+```sh
+# Backend uses AI_PROVIDER=fake by default; no network calls are made
+uv run --project backend uvicorn app.main:app --app-dir backend --reload
+
+# Run all backend tests (including 14 analysis tests)
+uv run --project backend pytest backend/tests --cov=app --cov-report=term-missing
+```
+
+Run with Anthropic (requires API key):
+
+```sh
+# Set in .env:
+# AI_PROVIDER=anthropic
+# AI_PROVIDER_API_KEY=sk-ant-...
+# AI_MODEL=claude-3-haiku-20240307
+uv run --project backend uvicorn app.main:app --app-dir backend --reload
+```
+
 The development seed is explicit opt-in and safe to re-run. Seeded rows are prefixed with `[Development seed]` and the script refuses to run against `ENVIRONMENT=production` without `--i-know-what-i-am-doing`.
 
 ## Testing
@@ -103,7 +128,7 @@ cd backend
 .venv/Scripts/python.exe -m pytest tests --cov=app --cov-report=term-missing
 ```
 
-The suite covers ingredient normalization and parsing, search/filter/pagination, barcode lookup (internal DB, external provider, timeout, not found, malformed payloads), submissions (dedupe, rate limiting), admin route enforcement (403 for non-admins), verify/reject, audit logs, and ingredient merges. It never calls the network: external provider calls are mocked.
+The suite covers ingredient normalization and parsing, search/filter/pagination, barcode lookup (internal DB, external provider, timeout, not found, malformed payloads), submissions (dedupe, rate limiting), admin route enforcement (403 for non-admins), verify/reject, audit logs, ingredient merges, and the full AI analysis pipeline (pipeline happy path, no-ingredients error, cache hit, skin-profile hash change, unverified flag, prompt injection, banned phrases, retry/fallback, provider timeout/429, daily limit, owner-only access, delete, pagination). It never calls the network: external provider calls are mocked.
 
 ## Structure
 
