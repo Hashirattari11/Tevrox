@@ -7,6 +7,7 @@ from sqlalchemy.exc import OperationalError
 from app.database.session import get_db
 from app.main import app
 
+
 @pytest.fixture
 def client():
     # The context manager runs FastAPI's lifespan, which initializes MongoDB.

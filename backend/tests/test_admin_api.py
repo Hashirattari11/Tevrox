@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
-from app.modules.products.service import create_user_submission
 from app.database.models import User
+from app.modules.products.service import create_user_submission
 
 from .conftest import auth_headers
 from .test_products_api import create_product

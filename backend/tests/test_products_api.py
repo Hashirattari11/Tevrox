@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
-import pytest
 from fastapi.testclient import TestClient
 
 from app.integrations.product_provider import ExternalProductDTO, set_product_provider
