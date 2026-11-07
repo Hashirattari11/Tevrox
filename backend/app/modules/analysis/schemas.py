@@ -124,3 +124,4 @@ class AnalysisResponse(BaseModel):
     error_code: str | None = None
     created_at: str
     result: AnalysisResult
+    product_unverified: bool = False

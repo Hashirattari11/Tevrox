@@ -26,7 +26,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.config import get_settings
-from app.database.models import Analysis, Product, ProductIngredient, User
+from app.database.models import Analysis, Product, ProductIngredient, User, UserProfile
 from app.integrations.ai_provider import (
     ProviderInvalidResponseError,
     ProviderRateLimitedError,
@@ -289,7 +289,11 @@ def _validate_and_merge(
         suitability_overview=raw_data.get("suitability_overview", ""),
         key_ingredients=[
             KeyIngredient(
-                ingredient_id=UUID(ki["ingredient_id"]),
+                ingredient_id=(
+                    ki["ingredient_id"]
+                    if isinstance(ki["ingredient_id"], UUID)
+                    else UUID(ki["ingredient_id"])
+                ),
                 name=ki.get("name", "Unknown"),
                 role=ki.get("role", "other"),
                 explanation=ki.get("explanation", ""),
@@ -355,7 +359,7 @@ def _build_fallback_report(
     )
 
 
-def run_analysis(
+async def run_analysis(
     db: Session,
     *,
     user: User,
@@ -363,8 +367,11 @@ def run_analysis(
     force_refresh: bool = False,
 ) -> dict[str, Any]:
     """Run the full 7-step analysis pipeline and return the stored report."""
-    # Get user profile for skin type/concerns.
-    profile = user.user_profile if hasattr(user, "user_profile") else None
+    # Get user profile for skin type/concerns (query directly; User has no
+    # user_profile relationship).
+    profile = db.scalar(
+        select(UserProfile).where(UserProfile.user_id == user.id)
+    )
     skin_type = profile.skin_type if profile else None
     skin_concerns = profile.skin_concerns if profile else []
 
@@ -431,7 +438,7 @@ def run_analysis(
     status = "completed"
 
     try:
-        provider_result = provider.generate_structured(
+        provider_result = await provider.generate_structured(
             system_prompt=system_prompt,
             user_payload=llm_payload,
             response_schema=AnalysisResult,
@@ -455,7 +462,7 @@ def run_analysis(
                 "Return ONLY valid JSON matching the schema. "
                 "Do not invent ingredient IDs. Do not use medical claims."
             )
-            provider_result2 = provider.generate_structured(
+            provider_result2 = await provider.generate_structured(
                 system_prompt=system_prompt,
                 user_payload=corrective_payload,
                 response_schema=AnalysisResult,
@@ -491,10 +498,11 @@ def run_analysis(
         )
 
     # Step 7: Store and return.
+    structured = json.loads(json.dumps(result.model_dump(), default=str))
     analysis = Analysis(
         user_id=user.id,
         product_id=product_id,
-        structured_result=result.model_dump(),
+        structured_result=structured,
         model_used=model_used,
         prompt_version=PROMPT_VERSION,
         rules_version=RULES_VERSION,

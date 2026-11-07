@@ -23,7 +23,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 @router.post("", response_model=AnalysisResponse, status_code=201)
-def create_analysis(
+async def create_analysis(
     payload: AnalysisCreate,
     db: Db,
     user: CurrentUser,
@@ -32,7 +32,7 @@ def create_analysis(
     ),
 ) -> AnalysisResponse:
     """Run ingredient analysis for a product."""
-    result = service.run_analysis(
+    result = await service.run_analysis(
         db, user=user, product_id=payload.product_id, force_refresh=force_refresh
     )
     return AnalysisResponse.model_validate(result)
