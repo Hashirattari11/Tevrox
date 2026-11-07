@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { StyleSheet, TouchableOpacity } from "react-native";
 
 export interface TevroxMobileCardProps {
   /** Card children */
@@ -10,6 +10,8 @@ export interface TevroxMobileCardProps {
   elevation?: "none" | "sm" | "md" | "lg";
   /** Background color */
   background?: string;
+  /** Additional styles */
+  style?: any;
 }
 
 export function TevroxMobileCard({
@@ -17,6 +19,7 @@ export function TevroxMobileCard({
   onPress,
   elevation = "md",
   background = "#FFFFFF",
+  style,
 }: TevroxMobileCardProps) {
   const elevationStyles = {
     none: { elevation: 0 },
@@ -26,17 +29,19 @@ export function TevroxMobileCard({
   }[elevation];
 
   return (
-    <View
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={onPress ? 0.8 : undefined}
       style={[
         styles.card,
         elevationStyles,
         { backgroundColor: background },
         { borderWidth: 1, borderColor: "#E5E7EB" },
+        style,
       ]}
-      onPress={onPress}
     >
       {children}
-    </View>
+    </TouchableOpacity>
   );
 }
 

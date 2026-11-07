@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from "react-native";
-import type { Health } from "@/src/types/health";
+import type { Health } from "@/types/health";
 
 export function StatusCard({ health, error }: { health: Health | null; error: string | null }) {
   return <View style={styles.card}><Text style={styles.title}>System status</Text>{health ? <><Text>Backend: {health.service} · {health.status} · v{health.version}</Text><Text>PostgreSQL: {health.database}</Text><Text>MongoDB: {health.mongodb}</Text></> : <Text>{error ?? "Loading status…"}</Text>}</View>;

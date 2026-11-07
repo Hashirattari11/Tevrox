@@ -12,6 +12,7 @@
     "lint": "pnpm --filter @tevrox/web lint && pnpm --filter @tevrox/mobile lint && uv run --project backend ruff check backend",
     "format:backend": "uv run --project backend ruff format backend",
     "migrate": "uv run --project backend alembic -c backend/alembic.ini upgrade head",
-    "openapi": "uv run --project backend python backend/scripts/export_openapi.py"
+    "openapi": "uv run --project backend python backend/scripts/export_openapi.py",
+    "seed:phase3": "uv run --project backend python backend/scripts/seed_phase3.py"
   }
 }

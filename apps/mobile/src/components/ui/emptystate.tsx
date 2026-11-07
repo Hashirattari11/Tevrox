@@ -32,7 +32,7 @@ export function TevroxMobileEmptyState({
 }: TevroxMobileEmptyStateProps) {
   return (
     <View style={styles.container}>
-      <Image source={iconSource} style={styles.icon} />
+      <Image source={iconSource} style={[styles.icon, { width: iconWidth, height: iconHeight }]} />
       <Text style={styles.title}>{title}</Text>
       {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
       {description && <Text style={styles.description}>{description}</Text>}
@@ -59,8 +59,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   icon: {
-    width: iconWidth,
-    height: iconHeight,
     marginBottom: 20,
     resizeMode: "contain",
   },

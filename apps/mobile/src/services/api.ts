@@ -1,6 +1,6 @@
-import { apiBaseUrl } from "@/src/constants/config";
-import type { Health } from "@/src/types/health";
-import { tokens } from "@/src/services/tokenStorage";
+import { apiBaseUrl } from "@/constants/config";
+import type { Health } from "@/types/health";
+import { tokens } from "@/services/tokenStorage";
 
 type AuthResult = { access_token: string; refresh_token: string; user: { id:string; email:string; role:string } };
 export async function auth(path: "login" | "signup", body: Record<string,string>): Promise<AuthResult> { const r=await fetch(`${apiBaseUrl}/api/v1/auth/${path}`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)}); const x=await r.json(); if(!r.ok) throw new Error(x.error?.message??"Authentication failed"); await tokens.set(x.access_token,x.refresh_token); return x; }

@@ -1,6 +1,5 @@
 import React from "react";
-import { StyleSheet, TouchableOpacity, Text, View } from "react-native";
-import type { SvgUri } from "react-native-svg";
+import { StyleSheet, TouchableOpacity, Text } from "react-native";
 
 export interface TevroxMobileButtonProps {
   /** Button title */
@@ -63,7 +62,7 @@ export function TevroxMobileButton({
       disabled={disabled || loading}
       accessible={true}
       accessibilityLabel={accessibilityLabel || title}
-      style={[styles.button, variantStyles, sizes[size], disabled && styles.disabled]}
+      style={[styles.button, variantStyles, sizes[size]]}
       {...props}
     >
       {loading

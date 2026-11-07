@@ -1,70 +1,52 @@
 import React from "react";
-import { StyleSheet, Text, View, TouchableOpacity } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export interface TevroxMobileBadgeProps {
-  /** Badge text */
-  text: string;
+  /** Badge text (used when children is not provided) */
+  text?: string;
+  /** Badge content (children) */
+  children?: React.ReactNode;
   /** Badge status: verified, unverified, rejected, info */
   status?: "verified" | "unverified" | "rejected" | "info";
   /** On press handler */
   onPress?: () => void;
+  /** Additional styles */
+  style?: any;
 }
+
+const STATUS_BACKGROUND_COLORS: Record<string, string> = {
+  verified: "#10B981",
+  unverified: "#F59E0B",
+  rejected: "#EF4444",
+  info: "#6366F1",
+};
 
 export function TevroxMobileBadge({
   text,
-  status,
+  children,
+  status = "info",
   onPress,
+  style,
 }: TevroxMobileBadgeProps) {
-  const statusStyles = {
-    verified = {
-      backgroundColor: "#10B981",
-      color: "white",
-    },
-    unverified = {
-      backgroundColor: "#F59E0B",
-      color: "white",
-    },
-    rejected = {
-      backgroundColor: "#EF4444",
-      color: "white",
-    },
-    info = {
-      backgroundColor: "#6366F1",
-      color: "white",
-    },
-  }[status] || {
-    backgroundColor: "#6B7280",
-    color: "white",
-  };
-
+  const content = children ?? text;
   return (
     <TouchableOpacity
       onPress={onPress}
       accessible={true}
-      accessibilityLabel={text}
-      style={styles.badge}
+      accessibilityLabel={String(content ?? "")}
+      style={[
+        styles.badge,
+        { backgroundColor: STATUS_BACKGROUND_COLORS[status] ?? STATUS_BACKGROUND_COLORS.info },
+        style,
+      ]}
     >
-      <Text style={styles.badgeText}>{text}</Text>
+      <Text style={styles.badgeText}>{content}</Text>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   badge: {
-    backgroundColor: (() => {
-      switch (status) {
-        case "verified":
-          return "#10B981";
-        case "unverified":
-          return "#F59E0B";
-        case "rejected":
-          return "#EF4444";
-        case "info":
-          return "#6366F1";
-        default:
-          return "#6B7280";
-      }
-    })(),
     borderRadius: 9999,
     paddingHorizontal: 6,
     paddingVertical: 3,

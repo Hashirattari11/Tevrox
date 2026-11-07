@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { SafeAreaView, StyleSheet, Text } from "react-native";
-import { StatusCard } from "@/src/components/StatusCard";
-import { getHealth } from "@/src/services/api";
-import type { Health } from "@/src/types/health";
+import { StatusCard } from "@/components/StatusCard";
+import { getHealth } from "@/services/api";
+import type { Health } from "@/types/health";
 
 export default function Home() {
   const [health, setHealth] = useState<Health | null>(null);

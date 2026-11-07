@@ -15,7 +15,11 @@ export interface TevroxMobileInputProps {
   /** Whether input is required */
   required?: boolean;
   /** Keyboard type */
-  keyboardType?: "default" | "email-address" | "numeric" | "decimal";
+  keyboardType?: "default" | "email-address" | "numeric";
+  /** Whether input is multiline */
+  multiline?: boolean;
+  /** Number of lines (for multiline) */
+  numberOfLines?: number;
   /** Input error message */
   error?: string;
   /** Secure text entry (for passwords) */
@@ -27,9 +31,10 @@ export function TevroxMobileInput({
   placeholder = "",
   value,
   onChangeText,
-  disabled = false,
   required = false,
   keyboardType = "default",
+  multiline,
+  numberOfLines,
   secureTextEntry = false,
   error,
   ...props
@@ -42,13 +47,14 @@ export function TevroxMobileInput({
       <TextInput
         value={value ?? ""}
         onChangeText={onChangeText}
-        disabled={disabled}
         keyboardType={keyboardType}
         secureTextEntry={secureTextEntry}
         style={styles.input}
         placeholder={placeholder}
         accessibilityLabel={label}
-        error={error}
+        multiline={multiline}
+        numberOfLines={numberOfLines}
+        {...props}
       />
       {error && (
         <Text style={styles.errorText}>{error}</Text>
