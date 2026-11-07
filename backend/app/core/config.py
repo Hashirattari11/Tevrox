@@ -24,12 +24,16 @@ class Settings(BaseSettings):
     ai_provider_api_key: str = ""
     ai_provider: str = "fake"
     ai_model: str = "claude-3-haiku-20240307"
-    ai_max_tokens: int = 1000
+    ai_max_tokens: int = 1500
     ai_timeout_seconds: float = 30.0
     analysis_daily_limit: int = 20
     openrouter_api_key: str = ""
-    openrouter_model: str = "google/gemma-4-31b-it:free"
-    openrouter_timeout_seconds: float = 30.0
+    openrouter_model: str = "nvidia/nemotron-3-ultra-550b-a55b:free"
+    openrouter_fallback_models: str = (
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,"
+        "liquid/lfm-2.5-2.6b:free"
+    )
+    openrouter_timeout_seconds: float = 60.0
     product_api_key: str = ""
     open_beauty_facts_base_url: str = "https://world.openbeautyfacts.org"
     product_provider_timeout_seconds: float = 8.0

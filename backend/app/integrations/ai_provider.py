@@ -17,6 +17,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import time
 from abc import ABC, abstractmethod
 from typing import Any
@@ -59,6 +60,9 @@ def parse_json_content(content: str) -> dict[str, Any]:
     or suffix despite instructions. This extracts the JSON object instead of
     failing the whole analysis.
     """
+    if not content:
+        raise ValueError("Model returned empty content")
+
     text = content.strip()
 
     if text.startswith("```"):
@@ -76,11 +80,17 @@ def parse_json_content(content: str) -> dict[str, Any]:
         end = text.rfind("}")
         if start == -1 or end <= start:
             raise
-        parsed = json.loads(text[start : end + 1])
+        candidate = _strip_trailing_commas(text[start : end + 1])
+        parsed = json.loads(candidate)
 
     if not isinstance(parsed, dict):
         raise ValueError("Model response is not a JSON object")
     return parsed
+
+
+def _strip_trailing_commas(text: str) -> str:
+    """Remove trailing commas before ``}`` / ``]`` (a common model mistake)."""
+    return re.sub(r",\s*([}\]])", r"\1", text)
 
 
 class ProviderResult:
@@ -262,8 +272,10 @@ class AnthropicProvider(AIProvider):
 class OpenRouterProvider(AIProvider):
     """OpenRouter provider using the OpenRouter chat completions API.
 
-    Supports free models such as ``google/gemma-4-31b-it:free``.
-    Configured via ``OPENROUTER_API_KEY`` and ``OPENROUTER_MODEL`` env vars.
+    Uses free models only (``:free`` suffix), configured via
+    ``OPENROUTER_API_KEY``, ``OPENROUTER_MODEL``, and
+    ``OPENROUTER_FALLBACK_MODELS``. Free models share an upstream pool and are
+    frequently rate-limited, so every model in the list is tried in order.
     """
 
     def __init__(
@@ -271,6 +283,7 @@ class OpenRouterProvider(AIProvider):
         *,
         api_key: str | None = None,
         model: str | None = None,
+        fallback_models: str | None = None,
         timeout_seconds: float | None = None,
         client: Any | None = None,
     ) -> None:
@@ -279,6 +292,18 @@ class OpenRouterProvider(AIProvider):
         self.model = model or settings.openrouter_model
         self.timeout_seconds = timeout_seconds or settings.openrouter_timeout_seconds
         self._client = client
+
+        fallbacks = (
+            fallback_models
+            if fallback_models is not None
+            else settings.openrouter_fallback_models
+        )
+        ordered = [self.model, *fallbacks.split(",")]
+        self.models: list[str] = []
+        for candidate in ordered:
+            name = candidate.strip()
+            if name and name not in self.models:
+                self.models.append(name)
 
         if not self.api_key:
             logger.warning(
@@ -292,7 +317,7 @@ class OpenRouterProvider(AIProvider):
         user_payload: dict[str, Any],
         response_schema: type[Any],
     ) -> ProviderResult:
-        """Call OpenRouter chat completions API with retries and structured output."""
+        """Call OpenRouter with per-model fallback, retries, and JSON output."""
         user_message = json.dumps(user_payload, ensure_ascii=False)
         schema_name = getattr(response_schema, "__name__", "Schema")
 
@@ -303,96 +328,112 @@ class OpenRouterProvider(AIProvider):
         )
 
         last_error: Exception | None = None
-        for attempt in range(3):
-            client = self._client or httpx.AsyncClient(timeout=self.timeout_seconds)
-            owns_client = self._client is None
-            try:
-                start = time.monotonic()
-                response = await client.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers={
-                        "Authorization": f"Bearer {self.api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": self.model,
-                        "messages": [
-                            {"role": "system", "content": system_with_schema},
-                            {"role": "user", "content": user_message},
-                        ],
-                        "temperature": 0.3,
-                        "max_tokens": settings.ai_max_tokens,
-                    },
-                )
+        for model in self.models:
+            # Two attempts per model (retry once on network/5xx), then the next
+            # free model is tried. Rate limits move on immediately.
+            for attempt in range(2):
+                client = self._client or httpx.AsyncClient(timeout=self.timeout_seconds)
+                owns_client = self._client is None
+                try:
+                    start = time.monotonic()
+                    response = await client.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {self.api_key}",
+                            "Content-Type": "application/json",
+                            "HTTP-Referer": "https://tevrox.example",
+                            "X-Title": "Tevrox",
+                        },
+                        json={
+                            "model": model,
+                            "messages": [
+                                {"role": "system", "content": system_with_schema},
+                                {"role": "user", "content": user_message},
+                            ],
+                            "temperature": 0.3,
+                            "max_tokens": settings.ai_max_tokens,
+                        },
+                    )
 
-                if response.status_code == 429:
-                    last_error = ProviderRateLimitedError(
-                        "AI_RATE_LIMITED",
-                        "OpenRouter rate limit exceeded.",
-                        status_code=429,
-                    )
-                    logger.info("OpenRouter rate limited on attempt %s", attempt + 1)
-                elif response.status_code >= 500:
-                    last_error = ProviderUnavailableError(
-                        "AI_PROVIDER_UNAVAILABLE",
-                        f"OpenRouter returned HTTP {response.status_code}.",
-                        status_code=response.status_code,
-                    )
-                    logger.info(
-                        "OpenRouter server error %s on attempt %s",
-                        response.status_code,
-                        attempt + 1,
-                    )
-                elif response.status_code != 200:
+                    if response.status_code == 200:
+                        data = response.json()
+                        choice = data["choices"][0]
+                        if choice.get("finish_reason") == "length":
+                            raise ValueError("Model response was truncated")
+                        content = (choice.get("message") or {}).get("content") or ""
+                        parsed = parse_json_content(content)
+
+                        usage = data.get("usage", {})
+                        return ProviderResult(
+                            data=parsed,
+                            model=data.get("model") or model,
+                            input_tokens=usage.get("prompt_tokens"),
+                            output_tokens=usage.get("completion_tokens"),
+                            latency_ms=int((time.monotonic() - start) * 1000),
+                        )
+
+                    if response.status_code == 429:
+                        last_error = ProviderRateLimitedError(
+                            "AI_RATE_LIMITED",
+                            f"OpenRouter rate limit exceeded for {model}.",
+                            status_code=429,
+                        )
+                        logger.info("OpenRouter rate limited for %s", model)
+                        break  # next fallback model
+
+                    if response.status_code >= 500:
+                        last_error = ProviderUnavailableError(
+                            "AI_PROVIDER_UNAVAILABLE",
+                            f"OpenRouter returned HTTP {response.status_code}.",
+                            status_code=response.status_code,
+                        )
+                        logger.info(
+                            "OpenRouter server error %s for %s",
+                            response.status_code,
+                            model,
+                        )
+                        if attempt == 0:
+                            await asyncio.sleep(0.5)
+                            continue
+                        break
+
                     last_error = ProviderInvalidResponseError(
                         "AI_INVALID_RESPONSE",
                         f"OpenRouter returned HTTP {response.status_code}.",
                         status_code=response.status_code,
                     )
                     logger.info(
-                        "OpenRouter error %s on attempt %s",
-                        response.status_code,
-                        attempt + 1,
+                        "OpenRouter error %s for %s", response.status_code, model
                     )
-                else:
-                    data = response.json()
-                    content = data["choices"][0]["message"]["content"]
-                    parsed = parse_json_content(content)
+                    break
 
-                    usage = data.get("usage", {})
-                    returned_model = data.get("model") or self.model
-                    return ProviderResult(
-                        data=parsed,
-                        model=returned_model,
-                        input_tokens=usage.get("prompt_tokens"),
-                        output_tokens=usage.get("completion_tokens"),
-                        latency_ms=int((time.monotonic() - start) * 1000),
+                except (httpx.TimeoutException, httpx.NetworkError):
+                    last_error = ProviderUnavailableError(
+                        "AI_PROVIDER_UNAVAILABLE",
+                        "OpenRouter request timed out or network error.",
                     )
-
-            except (httpx.TimeoutException, httpx.NetworkError):
-                last_error = ProviderUnavailableError(
-                    "AI_PROVIDER_UNAVAILABLE",
-                    "OpenRouter request timed out or network error.",
-                )
-                logger.info("OpenRouter network error on attempt %s", attempt + 1)
-            except (json.JSONDecodeError, ValueError) as exc:
-                last_error = ProviderInvalidResponseError(
-                    "AI_INVALID_RESPONSE",
-                    "OpenRouter returned unparseable JSON.",
-                )
-                logger.warning("OpenRouter JSON parse error: %s", exc)
-            except Exception as exc:  # pragma: no cover - defensive
-                last_error = ProviderUnavailableError(
-                    "AI_PROVIDER_UNAVAILABLE",
-                    "OpenRouter request failed.",
-                )
-                logger.warning("OpenRouter request error: %s", exc)
-            finally:
-                if owns_client:
-                    await client.aclose()
-
-            if attempt < 2:
-                await asyncio.sleep(0.5 * (attempt + 1))
+                    logger.info("OpenRouter network error for %s", model)
+                    if attempt == 0:
+                        await asyncio.sleep(0.5)
+                        continue
+                    break
+                except (json.JSONDecodeError, ValueError) as exc:
+                    last_error = ProviderInvalidResponseError(
+                        "AI_INVALID_RESPONSE",
+                        "OpenRouter returned unparseable JSON.",
+                    )
+                    logger.warning("OpenRouter JSON parse error for %s: %s", model, exc)
+                    break
+                except Exception as exc:  # pragma: no cover - defensive
+                    last_error = ProviderUnavailableError(
+                        "AI_PROVIDER_UNAVAILABLE",
+                        "OpenRouter request failed.",
+                    )
+                    logger.warning("OpenRouter request error for %s: %s", model, exc)
+                    break
+                finally:
+                    if owns_client:
+                        await client.aclose()
 
         assert last_error is not None
         raise last_error

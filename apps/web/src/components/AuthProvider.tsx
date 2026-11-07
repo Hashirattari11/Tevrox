@@ -151,6 +151,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearSession();
   }, [clearSession]);
 
+  const refreshSession = useCallback(async (): Promise<string | null> => {
+    const refreshToken = readStoredRefreshToken();
+    if (!refreshToken) return null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (!response.ok) return null;
+      const data = await parseTokenResponse(response, "Session expired");
+      persistSession(data);
+      return data.access_token;
+    } catch {
+      return null;
+    }
+  }, [persistSession]);
+
   const authFetch = useCallback(
     async (path: string, init: RequestInit = {}) => {
       const token = accessToken ?? readStoredAccessToken();
@@ -159,13 +177,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!headers.has("Content-Type") && init.body) {
         headers.set("Content-Type", "application/json");
       }
-      const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+      let response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
       if (response.status === 401) {
-        clearSession();
+        // Access tokens are short-lived; try one refresh before logging out.
+        const refreshed = await refreshSession();
+        if (refreshed) {
+          headers.set("Authorization", `Bearer ${refreshed}`);
+          response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers });
+        }
+        if (response.status === 401) clearSession();
       }
       return response;
     },
-    [accessToken, clearSession]
+    [accessToken, clearSession, refreshSession]
   );
 
   const value = useMemo<AuthContextValue>(

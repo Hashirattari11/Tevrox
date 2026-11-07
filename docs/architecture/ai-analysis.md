@@ -101,9 +101,11 @@ providers. Current implementations:
 - `AnthropicProvider` (`AI_PROVIDER=anthropic`) – official Anthropic SDK, with
   retries and backoff for 429/5xx.
 - `OpenRouterProvider` (`AI_PROVIDER=openrouter`) – OpenAI-compatible
-  chat-completions call to OpenRouter with a free model
-  (`google/gemma-4-31b-it:free` by default). Free models still require an
-  `OPENROUTER_API_KEY`; JSON wrapped in markdown fences is tolerated.
+  chat-completions call to OpenRouter. Uses free models only: the primary
+  `OPENROUTER_MODEL` (default `nvidia/nemotron-3-ultra-550b-a55b:free`) plus
+  `OPENROUTER_FALLBACK_MODELS`, because free models share an upstream pool and
+  are often rate-limited. Free models still require an `OPENROUTER_API_KEY`;
+  JSON wrapped in markdown fences is tolerated.
 
 Set `AI_PROVIDER=anthropic` and `AI_PROVIDER_API_KEY` to use the real provider.
 

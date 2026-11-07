@@ -66,11 +66,12 @@ The mobile client can reach the host as `10.0.2.2` on the Android emulator or `l
 | `AI_PROVIDER_API_KEY` | backend | API key for the selected AI provider (Anthropic) |
 | `AI_PROVIDER` | backend | `fake` (default), `anthropic`, or `openrouter` |
 | `AI_MODEL` | backend | Model name, e.g. `claude-3-haiku-20240307` |
-| `AI_MAX_TOKENS` | backend | Max tokens per analysis; default 1000 |
+| `AI_MAX_TOKENS` | backend | Max tokens per analysis; default 1500 |
 | `AI_TIMEOUT_SECONDS` | backend | Provider timeout; default 30.0 |
 | `OPENROUTER_API_KEY` | backend | OpenRouter API key (only for `AI_PROVIDER=openrouter`) |
-| `OPENROUTER_MODEL` | backend | Free OpenRouter model; default `google/gemma-4-31b-it:free` |
-| `OPENROUTER_TIMEOUT_SECONDS` | backend | OpenRouter request timeout; default 30.0 |
+| `OPENROUTER_MODEL` | backend | Free OpenRouter model; default `nvidia/nemotron-3-ultra-550b-a55b:free` |
+| `OPENROUTER_FALLBACK_MODELS` | backend | Comma-separated free models tried when the primary is rate-limited |
+| `OPENROUTER_TIMEOUT_SECONDS` | backend | OpenRouter request timeout; default 60.0 |
 | `ANALYSIS_DAILY_LIMIT` | backend | Per-user daily analysis limit; default 20 |
 | `PRODUCT_API_KEY` | backend | Reserved for future providers; the default Open Beauty Facts integration needs no key |
 | `OPEN_BEAUTY_FACTS_BASE_URL` | backend | Base URL for the provisional Open Beauty Facts provider |

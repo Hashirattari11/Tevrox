@@ -162,10 +162,11 @@ included. Prompts and model outputs are not logged in full.
 |----------|---------|---------|
 | `AI_PROVIDER` | `fake` | `fake`, `anthropic`, or `openrouter` |
 | `AI_MODEL` | `claude-3-haiku-20240307` | Anthropic model name (no hardcoding) |
-| `AI_MAX_TOKENS` | `1000` | Max tokens per request |
+| `AI_MAX_TOKENS` | `1500` | Max tokens per request |
 | `AI_TIMEOUT_SECONDS` | `30.0` | Provider timeout |
 | `AI_PROVIDER_API_KEY` | `` | Anthropic API key |
 | `OPENROUTER_API_KEY` | `` | OpenRouter API key (free models still require a key) |
-| `OPENROUTER_MODEL` | `google/gemma-4-31b-it:free` | Free OpenRouter model |
-| `OPENROUTER_TIMEOUT_SECONDS` | `30.0` | OpenRouter request timeout |
+| `OPENROUTER_MODEL` | `nvidia/nemotron-3-ultra-550b-a55b:free` | Primary free OpenRouter model |
+| `OPENROUTER_FALLBACK_MODELS` | `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free,liquid/lfm-2.5-2.6b:free` | Free models tried in order when the primary is rate-limited |
+| `OPENROUTER_TIMEOUT_SECONDS` | `60.0` | OpenRouter request timeout |
 | `ANALYSIS_DAILY_LIMIT` | `20` | Per-user daily analysis limit |

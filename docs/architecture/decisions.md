@@ -36,9 +36,11 @@
   (deterministic, no network) is the default for tests and local dev without a
   key. `AnthropicProvider` uses the official anthropic SDK. `OpenRouterProvider`
   calls OpenRouter's OpenAI-compatible chat-completions endpoint with a **free**
-  model (`google/gemma-4-31b-it:free` by default, verified against OpenRouter's
-  live model list). Free models still need `OPENROUTER_API_KEY`; the provider
-  tolerates JSON wrapped in markdown fences and walks a retry/backoff loop.
+  model (`nvidia/nemotron-3-ultra-550b-a55b:free` by default, verified against
+  OpenRouter's live model list) and an ordered fallback list
+  (`OPENROUTER_FALLBACK_MODELS`) because free models are frequently
+  rate-limited upstream. Free models still need `OPENROUTER_API_KEY`; the
+  provider tolerates JSON wrapped in markdown fences.
 
 - **Expert review needed:** All rules and ingredient reference data (function_tags, safety_notes, irritation_potential) must be reviewed by a qualified person before public launch; seed data is marked development-only.
 

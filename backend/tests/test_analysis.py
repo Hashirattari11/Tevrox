@@ -650,3 +650,113 @@ def test_openrouter_provider_parses_fenced_response():
     assert result.latency_ms is not None and result.latency_ms >= 0
     assert captured["model"] == "google/gemma-4-31b-it:free"
     assert captured["auth"] == "Bearer test-key"
+
+
+def test_openrouter_provider_falls_back_when_rate_limited():
+    """A rate-limited free model must not break analysis; the next model is used."""
+    import asyncio
+
+    import httpx
+
+    from app.integrations.ai_provider import OpenRouterProvider
+
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        model = json.loads(request.content)["model"]
+        calls.append(model)
+        if model == "primary:free":
+            return httpx.Response(429, json={"error": {"message": "rate limited"}})
+        return httpx.Response(
+            200,
+            json={
+                "model": model,
+                "choices": [{"message": {"content": '{"summary": "ok"}'}}],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1},
+            },
+        )
+
+    async def run() -> Any:
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            provider = OpenRouterProvider(
+                api_key="test-key",
+                model="primary:free",
+                fallback_models="secondary:free",
+                client=client,
+            )
+            return await provider.generate_structured(
+                system_prompt="system",
+                user_payload={},
+                response_schema=AnalysisResult,
+            )
+
+    result = asyncio.run(run())
+
+    assert calls == ["primary:free", "secondary:free"]
+    assert result.model == "secondary:free"
+    assert result.data == {"summary": "ok"}
+
+
+def test_parse_json_content_repairs_trailing_commas():
+    from app.integrations.ai_provider import parse_json_content
+
+    assert parse_json_content('{"a": 1,}') == {"a": 1}
+    assert parse_json_content('{"a": [1, 2,],}') == {"a": [1, 2]}
+
+
+def test_openrouter_provider_skips_empty_content():
+    """Models that return null content must not crash the fallback chain."""
+    import asyncio
+
+    import httpx
+
+    from app.integrations.ai_provider import OpenRouterProvider
+
+    calls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        model = json.loads(request.content)["model"]
+        calls.append(model)
+        if model == "empty:free":
+            return httpx.Response(
+                200,
+                json={
+                    "model": model,
+                    "choices": [
+                        {"message": {"content": None}, "finish_reason": "stop"}
+                    ],
+                },
+            )
+        return httpx.Response(
+            200,
+            json={
+                "model": model,
+                "choices": [
+                    {
+                        "message": {"content": '{"summary": "ok"}'},
+                        "finish_reason": "stop",
+                    }
+                ],
+            },
+        )
+
+    async def run() -> Any:
+        transport = httpx.MockTransport(handler)
+        async with httpx.AsyncClient(transport=transport) as client:
+            provider = OpenRouterProvider(
+                api_key="test-key",
+                model="empty:free",
+                fallback_models="good:free",
+                client=client,
+            )
+            return await provider.generate_structured(
+                system_prompt="system",
+                user_payload={},
+                response_schema=AnalysisResult,
+            )
+
+    result = asyncio.run(run())
+
+    assert calls == ["empty:free", "good:free"]
+    assert result.model == "good:free"
