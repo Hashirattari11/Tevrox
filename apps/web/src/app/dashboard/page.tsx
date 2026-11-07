@@ -14,7 +14,7 @@ const features = [
   { key: "dashboard", label: "Dashboard", route: "/dashboard", enabled: true, description: "Your overview" },
   { key: "products", label: "Products", route: "/products", enabled: true, description: "Search and browse products" },
   { key: "add", label: "Add product", route: "/products/add", enabled: true, description: "Submit missing products for review" },
-  { key: "analysis", label: "Analysis", route: "/analysis", enabled: false, description: "Coming soon — AI ingredient analysis" },
+  { key: "analysis", label: "Analysis", route: "/analysis", enabled: true, description: "AI ingredient analysis" },
   { key: "routines", label: "Routines", route: "/routines", enabled: false, description: "Coming soon — routine builder" },
   { key: "nutrition", label: "Nutrition", route: "/nutrition", enabled: false, description: "Coming soon — nutrition tracking" },
 ];

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import * as React from "react";
-import { ArrowLeft, PackageOpen, ShieldQuestion, ScanBarcode } from "lucide-react";
+import { ArrowLeft, Clock, PackageOpen, ShieldQuestion, ScanBarcode } from "lucide-react";
 
 import { TevroxLayout } from "@/components/layout";
 import { TevroxBadge } from "@/components/ui/badge";
@@ -11,6 +11,7 @@ import { TevroxEmptyState } from "@/components/ui/emptystate";
 import { TevroxErrorState } from "@/components/ui/errorstate";
 import { TevroxPageHeader } from "@/components/ui/pageheader";
 import { getProduct, type ProductDetail } from "@/services/catalog";
+import { createAnalysis } from "@/services/analysis";
 import { useAuth } from "@/components/AuthProvider";
 
 function prettyCategory(value: string | null | undefined): string {
@@ -30,6 +31,22 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [reloadToken, setReloadToken] = React.useState(0);
+  const [analyzing, setAnalyzing] = React.useState(false);
+  const [analysisResult, setAnalysisResult] = React.useState<string | null>(null);
+
+  const handleAnalyze = async () => {
+    if (!id) return;
+    setAnalyzing(true);
+    setAnalysisResult(null);
+    try {
+      const result = await createAnalysis(authFetch, id);
+      setAnalysisResult(result.id);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "Analysis failed");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!id) return;
@@ -76,7 +93,38 @@ export default function ProductDetailPage() {
           <ArrowLeft size={16} aria-hidden />
           All products
         </Link>
+        {product && (
+          <button
+            onClick={handleAnalyze}
+            disabled={analyzing || product.verification_status !== "verified"}
+            className="inline-flex items-center gap-2 rounded-md border border-emerald-700 bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50"
+          >
+            {analyzing ? (
+              <Clock size={14} className="animate-spin" aria-hidden />
+            ) : (
+              <ScanBarcode size={14} aria-hidden />
+            )}
+            {analyzing ? "Analyzing…" : "Analyze ingredients"}
+          </button>
+        )}
       </div>
+
+      {product && analysisResult && (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+          <div className="flex items-start gap-2">
+            <Clock size={14} className="mt-0.5 text-emerald-700 shrink-0" aria-hidden />
+            <p className="text-sm text-emerald-900">
+              Analysis complete.{" "}
+              <Link
+                href={`/analysis/${analysisResult}`}
+                className="font-medium text-emerald-800 hover:underline"
+              >
+                View report
+              </Link>
+            </p>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
