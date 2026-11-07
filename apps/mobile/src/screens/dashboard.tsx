@@ -13,7 +13,7 @@ export default function MobileDashboard() {
     { key: "products", label: "Products", enabled: true, route: "/products" },
     { key: "scan", label: "Scan barcode", enabled: true, route: "/scan" },
     { key: "add", label: "Add product", enabled: true, route: "/products/add" },
-    { key: "analysis", label: "Analysis", enabled: false, route: "/analysis" },
+    { key: "analysis", label: "Analysis", enabled: true, route: "/analysis" },
     { key: "routines", label: "Routines", enabled: false, route: "/routines" },
     { key: "nutrition", label: "Nutrition", enabled: false, route: "/nutrition" },
   ];

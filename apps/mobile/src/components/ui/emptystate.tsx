@@ -13,7 +13,7 @@ export interface TevroxMobileEmptyStateProps {
   /** On action press */
   onAction?: () => void;
   /** Icon source (require) */
-  iconSource: any;
+  iconSource?: any;
   /** Icon style width */
   iconWidth?: number;
   /** Icon style height */
