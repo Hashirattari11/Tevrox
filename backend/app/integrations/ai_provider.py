@@ -14,11 +14,14 @@ logged, and API keys are never exposed.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
 from abc import ABC, abstractmethod
 from typing import Any
+
+import httpx
 
 from app.core.config import get_settings
 
@@ -225,6 +228,145 @@ class AnthropicProvider(AIProvider):
         raise last_error
 
 
+class OpenRouterProvider(AIProvider):
+    """OpenRouter provider using the OpenRouter chat completions API.
+
+    Supports free models such as ``meta-llama/llama-3.1-8b-instruct:free``.
+    Configured via ``OPENROUTER_API_KEY`` and ``OPENROUTER_MODEL`` env vars.
+    """
+
+    def __init__(
+        self,
+        *,
+        api_key: str | None = None,
+        model: str | None = None,
+        timeout_seconds: float | None = None,
+        client: Any | None = None,
+    ) -> None:
+        settings = get_settings()
+        self.api_key = api_key or settings.openrouter_api_key
+        self.model = model or settings.openrouter_model
+        self.timeout_seconds = timeout_seconds or settings.openrouter_timeout_seconds
+        self._client = client
+
+        if not self.api_key:
+            logger.warning(
+                "OpenRouterProvider initialized without API key; calls will fail."
+            )
+
+    async def generate_structured(
+        self,
+        *,
+        system_prompt: str,
+        user_payload: dict[str, Any],
+        response_schema: type[Any],
+    ) -> ProviderResult:
+        """Call OpenRouter chat completions API with retries and structured output."""
+        user_message = json.dumps(user_payload, ensure_ascii=False)
+        schema_name = getattr(response_schema, "__name__", "Schema")
+
+        system_with_schema = (
+            f"{system_prompt}\n\n"
+            f"Respond ONLY with valid JSON matching this schema: {schema_name}. "
+            "Do not include markdown fences, explanations, or extra text."
+        )
+
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                if self._client is not None:
+                    client = self._client
+                else:
+                    client = httpx.AsyncClient(timeout=self.timeout_seconds)
+
+                response = await client.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": [
+                            {"role": "system", "content": system_with_schema},
+                            {"role": "user", "content": user_message},
+                        ],
+                        "temperature": 0.3,
+                        "max_tokens": settings.ai_max_tokens,
+                    },
+                )
+
+                if response.status_code == 429:
+                    last_error = ProviderRateLimitedError(
+                        "AI_RATE_LIMITED",
+                        "OpenRouter rate limit exceeded.",
+                        status_code=429,
+                    )
+                    logger.info("OpenRouter rate limited on attempt %s", attempt + 1)
+                elif response.status_code >= 500:
+                    last_error = ProviderUnavailableError(
+                        "AI_PROVIDER_UNAVAILABLE",
+                        f"OpenRouter returned HTTP {response.status_code}.",
+                        status_code=response.status_code,
+                    )
+                    logger.info(
+                        "OpenRouter server error %s on attempt %s",
+                        response.status_code,
+                        attempt + 1,
+                    )
+                elif response.status_code != 200:
+                    last_error = ProviderInvalidResponseError(
+                        "AI_INVALID_RESPONSE",
+                        f"OpenRouter returned HTTP {response.status_code}.",
+                        status_code=response.status_code,
+                    )
+                    logger.info(
+                        "OpenRouter error %s on attempt %s",
+                        response.status_code,
+                        attempt + 1,
+                    )
+                else:
+                    data = response.json()
+                    content = data["choices"][0]["message"]["content"]
+                    parsed = json.loads(content)
+
+                    usage = data.get("usage", {})
+                    return ProviderResult(
+                        data=parsed,
+                        model=self.model,
+                        input_tokens=usage.get("prompt_tokens"),
+                        output_tokens=usage.get("completion_tokens"),
+                        latency_ms=0,
+                    )
+
+            except (httpx.TimeoutException, httpx.NetworkError):
+                last_error = ProviderUnavailableError(
+                    "AI_PROVIDER_UNAVAILABLE",
+                    "OpenRouter request timed out or network error.",
+                )
+                logger.info("OpenRouter network error on attempt %s", attempt + 1)
+            except (json.JSONDecodeError, ValueError) as exc:
+                last_error = ProviderInvalidResponseError(
+                    "AI_INVALID_RESPONSE",
+                    "OpenRouter returned unparseable JSON.",
+                )
+                logger.warning("OpenRouter JSON parse error: %s", exc)
+            except Exception as exc:  # pragma: no cover - defensive
+                last_error = ProviderUnavailableError(
+                    "AI_PROVIDER_UNAVAILABLE",
+                    "OpenRouter request failed.",
+                )
+                logger.warning("OpenRouter request error: %s", exc)
+
+            if attempt < 2:
+                if self._client is None:
+                    await client.aclose()
+                await asyncio.sleep(0.5 * (attempt + 1))
+
+        assert last_error is not None
+        raise last_error
+
+
 class FakeAIProvider(AIProvider):
     """Deterministic fake provider for tests and local development.
 
@@ -343,6 +485,8 @@ def _build_provider() -> AIProvider:
     provider_name = settings.ai_provider.lower()
     if provider_name == "anthropic":
         return AnthropicProvider()
+    if provider_name == "openrouter":
+        return OpenRouterProvider()
     if provider_name == "fake":
         return FakeAIProvider()
     logger.warning(
