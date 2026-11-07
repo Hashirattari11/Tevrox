@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     allowed_origins: str = "http://localhost:3000,http://localhost:8081"
     environment: str = "development"
     ai_provider_api_key: str = ""
+    ai_provider: str = "fake"
+    ai_model: str = "claude-3-haiku-20240307"
+    ai_max_tokens: int = 1000
+    ai_timeout_seconds: float = 30.0
     product_api_key: str = ""
     open_beauty_facts_base_url: str = "https://world.openbeautyfacts.org"
     product_provider_timeout_seconds: float = 8.0
